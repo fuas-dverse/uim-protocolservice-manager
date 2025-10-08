@@ -179,3 +179,14 @@ cython_debug/
 # VS Code
 .vscode/
 .qodo
+
+# MongoDB data, logs and binaries
+implementations/MongoDB-Configs/bin/
+implementations/MongoDB-Configs/data/
+implementations/MongoDB-Configs/logs/
+
+implementations/Testing-env-MongoDB/mongodb-config/bin/
+implementations/Testing-env-MongoDB/mongodb-config/data/
+implementations/Testing-env-MongoDB/mongodb-config/logs/
+
+implementations/Testing-env-MongoDB/mongodb-config/mongosh-2.5.8-win32-x64/

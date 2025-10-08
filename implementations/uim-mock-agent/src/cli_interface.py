@@ -39,7 +39,7 @@ def get_user_choice():
         str or None: The user's choice as a string, or None if input is invalid.
     """
     try:
-        choice = input("Enter your choice (1-7): ")
+        choice = input("Enter your choice (1-6): ")
         return choice
     except ValueError:
         print("Invalid input. Please enter a number.")
@@ -68,7 +68,7 @@ def handle_discover_intents():
     except Exception as e:
         print(handle_error(e))
 
-
+6
 def handle_execute_intent():
     """
     Execute an intent with user-provided parameters.

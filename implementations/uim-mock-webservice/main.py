@@ -20,6 +20,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer
 from pydantic import BaseModel, Field
+from pathlib import Path
 
 # Load environment variables
 load_dotenv()
@@ -81,8 +82,12 @@ def get_key_pair(as_string: bool = False):
 
     """
     try:
-        private_key_path = os.path.join("keys", "private_key.pem")
-        public_key_path = os.path.join("keys", "public_key.pem")
+        base_path = Path(__file__).resolve().parent  # folder containing main.py
+        private_key_path = base_path / "keys" / "private_key.pem"
+        public_key_path = base_path / "keys" / "public_key.pem"
+
+        #private_key_path = os.path.join("keys", "./keys/private_key.pem")
+        #public_key_path = os.path.join("keys", "./keys/public_key.pem")
 
         if not os.path.exists(private_key_path) or not os.path.exists(public_key_path):
             print("Key pair not found for service under /keys.")
