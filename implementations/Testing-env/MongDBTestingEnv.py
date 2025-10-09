@@ -10,5 +10,6 @@ for u in users.find():
 
 
 print("All handymen")
-for u in users.find({"role": "handymen"}):
-    print(u)
+developers = users.find({"role": "Handyman"})
+for d in developers:
+    print(d)
