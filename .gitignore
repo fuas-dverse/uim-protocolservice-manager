@@ -181,9 +181,10 @@ cython_debug/
 .qodo
 
 # MongoDB data, logs and binaries
-implementations/MongoDB-Configs/bin/
-implementations/MongoDB-Configs/data/
-implementations/MongoDB-Configs/log/
+implementations/uim-servicemanager/Backend/DAL/mongoDB-Configs/bin/
+implementations/uim-servicemanager/Backend/DAL/mongoDB-Configs/data/
+implementations/uim-servicemanager/Backend/DAL/mongoDB-Configs/log/
+
 
 implementations/Testing-env/mongodb-config/bin/
 implementations/Testing-env/mongodb-config/data/
