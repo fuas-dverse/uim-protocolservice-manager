@@ -4,9 +4,10 @@ from pydantic import ValidationError
 
 db = GetDBConnection()
 users = db.users
+nameint = "test"
 
 data = {
-    "name": "Test2",
+    "name": nameint,
     "age": 22
 }
 

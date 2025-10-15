@@ -14,8 +14,8 @@ class PyObjectId(ObjectId):
         return ObjectId(v)
 
 
-class Service(BaseModel):
-    Service_id: Optional[PyObjectId] = Field(default=None, alias="_id")
+class Protocol(BaseModel):
+    Protocol_id: Optional[PyObjectId] = Field(default=None, alias="_id")
     uimpublickey: str = Field(..., min_length=1, max_length=500)
     uimpolicyfile: str = Field(..., min_length=1, max_length=500)
     uimApiDiscovery: str = Field(..., min_length=1, max_length=500)
