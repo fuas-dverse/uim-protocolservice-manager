@@ -1,8 +1,8 @@
 ﻿from bson import ObjectId
-from DBconnection import GetDBConnection
+from .DBconnection import GetDBConnection
 from pydantic import ValidationError
-from implementations.uimServicemanager.Backend.Logic.validationModels.serviceModel import Service
-from implementations.uimServicemanager.Backend.Logic.Interface.IserviceDAL import IserviceDAL
+from logicLayer.validationModels.serviceModel import Service
+from logicLayer.Interface.IserviceDAL import IserviceDAL
 
 
 db = GetDBConnection()

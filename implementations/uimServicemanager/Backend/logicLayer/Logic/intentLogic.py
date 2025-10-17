@@ -1,4 +1,4 @@
-﻿from implementations.uimServicemanager.Backend.Logic.Interface.IintentDAL import IintentDAL
+﻿from logicLayer.Interface import IintentDAL
 
 
 class intentLogic:

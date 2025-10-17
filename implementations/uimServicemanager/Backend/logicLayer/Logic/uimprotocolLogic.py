@@ -1,7 +1,7 @@
-﻿from implementations.uimServicemanager.Backend.Logic.Interface.IuimprotocolDAL import IuimProtocol
+﻿from logicLayer.Interface import IuimprotocolDAL
 
 class uimProtocolLogic:
-    def __init__(self, protocolDal: IuimProtocol):
+    def __init__(self, protocolDal: IuimprotocolDAL):
         self.protocolDal = protocolDal
 
     def getUIMProtocols(self):

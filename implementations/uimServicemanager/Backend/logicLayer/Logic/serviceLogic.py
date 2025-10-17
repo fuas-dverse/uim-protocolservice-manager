@@ -1,4 +1,4 @@
-﻿from implementations.uimServicemanager.Backend.Logic.Interface.IserviceDAL import IserviceDAL
+﻿from logicLayer.Interface import IserviceDAL
 
 class serviceLogic:
     def __init__(self, serviceDAL: IserviceDAL):

@@ -1,8 +1,8 @@
 ﻿from bson import ObjectId
-from DBconnection import GetDBConnection
+from .DBconnection import GetDBConnection
 from pydantic import ValidationError
-from implementations.uimServicemanager.Backend.Logic.validationModels.UIMprotocolModel import Protocol
-from implementations.uimServicemanager.Backend.Logic.Interface.IuimprotocolDAL import IuimProtocol
+from logicLayer.validationModels.UIMprotocolModel import Protocol
+from logicLayer.Interface.IuimprotocolDAL import IuimProtocol
 
 db = GetDBConnection()
 uimProtocols = db["UIMprotocol"]
