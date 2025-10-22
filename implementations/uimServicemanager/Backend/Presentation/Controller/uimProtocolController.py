@@ -29,7 +29,7 @@ def get_uimprotocol_by_id(protocol_id: str, logic: uimProtocolLogic = Depends(ge
     return protocol
 
 # POST a new entry
-@router.post("/", response_model=dict, description="Create a UIM Protocol entry")
+@router.post("/", response_model=dict, description="Create a UIM Protocol entry", status_code=201)
 def create_uimprotocol(protocol: uimProtocolViewModel, logic: uimProtocolLogic = Depends(get_uimprotocol_logic)):
     result = logic.addUIMProtocol(protocol.uimpublickey, protocol.uimpolicyfile, protocol.uimApiDiscovery, protocol.uimApiExceute)
     return {"message": result}

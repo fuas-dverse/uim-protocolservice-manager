@@ -37,7 +37,7 @@ def get_intent_by_tag(intent_tag: str, logic: intentLogic = Depends(get_intents_
     return intent
 
 # POST a new intent
-@router.post("/", response_model=dict, description="Create an Intent")
+@router.post("/", response_model=dict, description="Create an Intent", status_code=201)
 def create_intent(intent: IntentViewModel, logic: intentLogic = Depends(get_intents_logic)):
     regex = r"^[A-Za-z0-9 .]+$"
     if not re.match(regex, intent.name):

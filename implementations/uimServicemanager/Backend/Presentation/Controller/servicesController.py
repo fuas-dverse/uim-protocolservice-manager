@@ -32,7 +32,7 @@ def get_service_by_id(service_id: str, logic: serviceLogic = Depends(get_service
     return service
 
 # POST a new service
-@router.post("/", response_model=dict, description="Create a Service")
+@router.post("/", response_model=dict, description="Create a Service", status_code=201)
 def create_service(service: ServiceViewModel, logic: serviceLogic = Depends(get_service_logic)):
     regex = r"^[A-Za-z0-9 .]+$"
     if not re.match(regex, service.name):
