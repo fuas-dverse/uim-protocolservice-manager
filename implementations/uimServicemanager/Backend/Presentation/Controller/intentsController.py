@@ -28,6 +28,14 @@ def get_intent_by_id(intent_id: str, logic: intentLogic = Depends(get_intents_lo
         raise HTTPException(status_code=404, detail="Intent not found")
     return intent
 
+# GET intent by Tag
+@router.get("/{intent_tag}", response_model=IntentViewModel, description="Get an Intent by tag")
+def get_intent_by_tag(intent_tag: str, logic: intentLogic = Depends(get_intents_logic)):
+    intent = logic.getIntentByTag(intent_tag)
+    if not intent:
+        raise HTTPException(status_code=404, detail="Intent not found")
+    return intent
+
 # POST a new intent
 @router.post("/", response_model=dict, description="Create an Intent")
 def create_intent(intent: IntentViewModel, logic: intentLogic = Depends(get_intents_logic)):

@@ -40,7 +40,7 @@ MANIFEST
 *.manifest
 *.spec
 
-# Installer logs
+# Installer log
 pip-log.txt
 pip-delete-this-directory.txt
 
@@ -180,7 +180,7 @@ cython_debug/
 .vscode/
 .qodo
 
-# MongoDB data, logs and binaries
+# MongoDB data, log and binaries
 implementations/uimServicemanager/Backend/DAL/mongoDB-Configs/bin/
 implementations/uimServicemanager/Backend/DAL/mongoDB-Configs/data/
 implementations/uimServicemanager/Backend/DAL/mongoDB-Configs/log/

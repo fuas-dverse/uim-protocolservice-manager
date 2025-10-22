@@ -19,6 +19,10 @@ class IntentDAL(IintentDAL):
         Intent = intents.find_one({"_id": ObjectId(ID)})
         return Intent
 
+    def getIntentByTag(self, Tag):
+        Intent = intents.find_one({"tags": ObjectId(Tag)})
+        return Intent
+
     def addIntents(self, intentName, intentDescription, intentTags, rateLimit, price):
         try:
             data = {

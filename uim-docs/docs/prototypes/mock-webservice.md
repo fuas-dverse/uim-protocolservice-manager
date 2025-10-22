@@ -123,7 +123,7 @@ Create a file named `config.json` in the service's directory:
   },
   "logging": {
     "level": "info",
-    "file": "./logs/service.log"
+    "file": "./log/service.log"
   }
 }
 ```

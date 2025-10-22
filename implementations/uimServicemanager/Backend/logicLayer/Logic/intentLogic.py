@@ -11,6 +11,9 @@ class intentLogic:
     def getIntentByID(self, ID):
         return self.intentDal.getIntentByID(ID)
 
+    def getIntentByTag(self, Tag):
+        return self.intentDal.getIntentByTag(Tag)
+
     def addIntents(self, intentName, intentDescription, intentTags, rateLimit, price):
         return self.intentDal.addIntent(intentName, intentDescription, intentTags, rateLimit, price)
 

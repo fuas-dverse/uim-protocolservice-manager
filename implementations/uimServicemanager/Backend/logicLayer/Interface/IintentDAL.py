@@ -7,7 +7,9 @@ class IintentDAL(ABC):
     @abstractmethod
     def getIntentByID(self, ID):
         pass
-
+    @abstractmethod
+    def getIntentByTag(self, Tag):
+        pass
     @abstractmethod
     def addIntent(self, intentName, intentDescription, intentTags, rateLimit, price):
         pass
