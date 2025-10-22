@@ -11,3 +11,5 @@ or in this command if your within the config/bin
 then run the program (run this command within the backend main folder)
 
 python -m uvicorn main:app --reload
+
+the port it uses is:  http://127.0.0.1:8000
