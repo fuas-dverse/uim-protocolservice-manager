@@ -19,9 +19,9 @@ class Intent(BaseModel):
     Intent_id: Optional[PyObjectId] = Field(default=None, alias="_id")
     name: str = Field(..., min_length=2, max_length=50)
     description: str = Field(..., min_length=1, max_length=500)
-    tags: List[str] = Field(..., min_length=1)
-    rateLimit: int = Field(..., min_length=1)
-    price: int = Field(..., min_length=1)
+    tags: List[str] = Field(...)
+    rateLimit: int = Field(...)
+    price: int = Field(...)
 
     class Config:
         json_encoders = {ObjectId: str}

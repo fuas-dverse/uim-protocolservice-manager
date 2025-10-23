@@ -23,10 +23,10 @@ class IntentDAL(IintentDAL):
         Intent = intents.find_one({"tags": ObjectId(Tag)})
         return Intent
 
-    def addIntents(self, intentName, intentDescription, intentTags, rateLimit, price):
+    def addIntent(self, intentname, intentDescription, intentTags, rateLimit, price):
         try:
             data = {
-                "name": intentName,
+                "name": intentname,
                 "description": intentDescription,
                 "tags": intentTags,
                 "rateLimit": rateLimit,
@@ -37,7 +37,8 @@ class IntentDAL(IintentDAL):
             return f"success: inserted with Id {result.inserted_id}"
 
         except ValidationError as e:
-            return e
+            # Convert the error to a JSON-serializable dict
+            return {"error": e.errors()}  # e.errors() is a list of validation issues
 
     def updateIntent(self, intentName, intentDescription, intentTags, rateLimit, price, Intents_ID):
         try:

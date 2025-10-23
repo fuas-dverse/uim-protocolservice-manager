@@ -1,9 +1,24 @@
-﻿from pydantic import BaseModel
-from typing import Optional
+﻿from pydantic import BaseModel, field_validator
+from typing import List, Optional
 
 class IntentViewModel(BaseModel):
-    name: str
+    intent_name: str
     description: str
-    tags: str
+    tags: List[str]
     rateLimit: Optional[int] = None
-    price: Optional[int] = None
+    price: Optional[float] = None
+
+    class Config:
+        extra = "allow"
+
+    @field_validator("rateLimit", mode="before")
+    def parse_rate_limit(cls, v):
+        if v is None:
+            return None
+        return int(v)
+
+    @field_validator("price", mode="before")
+    def parse_price(cls, v):
+        if v is None:
+            return None
+        return float(v)

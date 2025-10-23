@@ -39,29 +39,42 @@ def get_intent_by_tag(intent_tag: str, logic: intentLogic = Depends(get_intents_
 # POST a new intent
 @router.post("/", response_model=dict, description="Create an Intent", status_code=201)
 def create_intent(intent: IntentViewModel, logic: intentLogic = Depends(get_intents_logic)):
-    regex = r"^[A-Za-z0-9 .]+$"
-    if not re.match(regex, intent.name):
-        raise HTTPException(status_code=400, detail="Invalid name")
-    if not re.match(regex, intent.description):
-        raise HTTPException(status_code=400, detail="Invalid description")
-
-    result = logic.addIntent(intent.name, intent.description, intent.tags, intent.rateLimit, intent.price)
+    result = logic.addIntents(
+        intent.intent_name, intent.description, intent.tags, intent.rateLimit, intent.price
+    )
     return {"message": result}
 
 # PUT update intent
 @router.put("/{intent_id}", response_model=dict, description="Update an Intent")
 def update_intent(intent_id: str, intent: IntentViewModel, logic: intentLogic = Depends(get_intents_logic)):
     regex = r"^[A-Za-z0-9 .]+$"
-    if not re.match(regex, intent.name):
+    if not re.match(regex, intent.intent_name):
         raise HTTPException(status_code=400, detail="Invalid name")
     if not re.match(regex, intent.description):
         raise HTTPException(status_code=400, detail="Invalid description")
 
-    result = logic.updateIntent(intent.name, intent.description, intent.tags, intent.rateLimit, intent.price, intent_id)
+    result = logic.updateIntents(intent.intent_name, intent.description, intent.tags, intent.rateLimit, intent.price, intent_id)
     return {"message": result}
 
 # DELETE an intent
 @router.delete("/{intent_id}", response_model=dict, description="Delete an Intent")
 def delete_intent(intent_id: str, logic: intentLogic = Depends(get_intents_logic)):
-    result = logic.deleteIntent(intent_id)
+    result = logic.deleteIntents(intent_id)
     return {"message": result}
+
+@router.post("/bulk", response_model=dict, description="Create multiple Intents", status_code=201)
+def create_bulk_intents(
+    intents: List[IntentViewModel],
+    logic: intentLogic = Depends(get_intents_logic)
+):
+    results = []
+    for intent in intents:
+        result = logic.addIntents(
+            intent.intent_name,
+            intent.description,
+            intent.tags,
+            intent.rateLimit,
+            intent.price,
+        )
+        results.append(result)
+    return {"messages": results}

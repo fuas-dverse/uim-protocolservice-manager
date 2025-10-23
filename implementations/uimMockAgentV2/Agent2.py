@@ -15,7 +15,7 @@ class Agent:
             response.raise_for_status()
             data = response.json()
             print("\n--- External UIM agents.json Data ---")
-            #print(json.dumps(data, indent=2))
+            print(json.dumps(data, indent=2))
             return data
         except Exception as e:
             print(f"❌ Error fetching external agents.json: {e}")
@@ -35,24 +35,25 @@ class Agent:
         except Exception as e:
             print(f"❌ Failed to add service: {e}")
 
-    # === Add intents to catalogue ===
+    # === Add intents to catalogue (bulk) ===
     def add_intents(self, intents):
+        payload = []
         for intent in intents:
-            payload = {
-                "intent_name": intent.get("intent_name"),
+            payload.append({
+                "name": intent.get("intent_name"),
                 "description": intent.get("description"),
-                "tags": intent.get("tags", []),
-                "rateLimit": self._extract_number(intent.get("rateLimit") or intent.get("rate_limit")),
+                "tags": ", ".join(intent.get("tags", [])),
+                "rateLimit": self._extract_number(intent.get("rate_limit")),
                 "price": self._extract_number(intent.get("price")),
-            }
-            try:
-                response = requests.post(f"{self.catalogue_url}/intents/", json=payload)
-                response.raise_for_status()
-                print(f"✅ Intent '{payload['intent_name']}' added.")
-            except Exception as e:
-                print(f"❌ Failed to add intent '{payload.get('intent_name', '?')}': {e}")
-                if hasattr(e, "response") and e.response is not None:
-                    print("🔍 Response text:", e.response.text)
+            })
+
+        try:
+            # Updated endpoint
+            response = requests.post(f"{self.catalogue_url}/bulk", json=payload)
+            response.raise_for_status()
+            print(f"✅ {len(payload)} intents added in bulk.")
+        except Exception as e:
+            print(f"❌ Failed to add intents in bulk: {e}")
 
     # === Add UIM protocol metadata to catalogue ===
     def add_uimprotocol(self, data):
@@ -103,11 +104,11 @@ class Agent:
         service_info = data.get("service-info")
         intents = data.get("intents", [])
 
-        if service_info:
-            self.add_service(service_info)
+        # if service_info:
+        #     self.add_service(service_info)
         if intents:
             self.add_intents(intents)
-        self.add_uimprotocol(data)
+        # self.add_uimprotocol(data)
 
         print("\n✅ Sync completed successfully.")
 
