@@ -115,7 +115,7 @@ class agentClass:
 def main():
     parser = argparse.ArgumentParser(description="UIM Agent to sync data into catalogue")
     parser.add_argument("--external", default="http://localhost:4000", help="External UIM service URL")
-    parser.add_argument("--catalogue", default="http://127.0.0.1:8000", help="Catalogue API URL")
+    parser.add_argument("--catalogue", default="https://127.0.0.1:8000", help="Catalogue API URL")
     parser.add_argument("--action", choices=["fetch-external", "fetch-catalogue", "sync"], required=True)
     args = parser.parse_args()
 
