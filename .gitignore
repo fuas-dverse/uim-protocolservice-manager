@@ -192,4 +192,5 @@ implementations/Testing-env/mongodb-config/log/
 
 implementations/Testing-env/mongodb-config/mongosh-2.5.8-win32-x64/
 
-implementations/uimServicemanager/Demo-Frontend/uim-catalogue/node_modules
+implementations/uimServicemanager/Demo-Frontend/node_modules
+

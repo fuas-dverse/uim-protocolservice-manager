@@ -1,7 +1,6 @@
 ﻿import subprocess
 import time
 import os
-import signal
 
 # --- Paths ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Backend folder

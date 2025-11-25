@@ -5,7 +5,7 @@ let intents = [];
 // Fetch intents from API
 async function loadIntents() {
   try {
-    const response = await fetch('http://localhost:5000/intents'); // <-- your intents endpoint
+    const response = await fetch('http://localhost:8000/intents');
     intents = await response.json();
     renderIntents();
   } catch (error) {
