@@ -1,5 +1,16 @@
 {
-  "dependencies": {
-    "solid-js": "^1.9.10"
+  "name": "uim-catalogue-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@solidjs/router": "^0.15.4",
+    "solid-js": "^1.9.10",
+    "vite": "^5.4.21",
+    "vite-plugin-solid": "^2.11.10"
   }
 }
