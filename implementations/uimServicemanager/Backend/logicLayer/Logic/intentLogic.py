@@ -1,24 +1,44 @@
-﻿from logicLayer.Interface import IintentDAL
+﻿from typing import List, Optional
+from logicLayer.Interface.IintentDAL import IintentDAL
+from Presentation.Viewmodel.intentViewmodel import IntentViewModel
 
 
-class intentLogic:
-    def __init__(self, intentDal: IintentDAL):
-        self.intentDal = intentDal
+class IntentLogic:
+    """Business logic layer for intent operations"""
 
-    def getIntents(self):
-        return self.intentDal.getIntents()
+    def __init__(self, intentDAL: IintentDAL):
+        self.intentDAL = intentDAL
 
-    def getIntentByID(self, ID):
-        return self.intentDal.getIntentByID(ID)
+    def getIntents(self) -> List[IntentViewModel]:
+        """Get all intents"""
+        intents_data = self.intentDAL.getIntents()
+        return [IntentViewModel(**intent) for intent in intents_data]
 
-    def getIntentByTag(self, Tag):
-        return self.intentDal.getIntentByTag(Tag)
+    def getIntentByID(self, intent_id: str) -> Optional[IntentViewModel]:
+        """Get a single intent by ID"""
+        intent_data = self.intentDAL.getIntentByID(intent_id)
+        if intent_data:
+            return IntentViewModel(**intent_data)
+        return None
 
-    def addIntents(self, intentName, intentDescription, intentTags, rateLimit, price):
-        return self.intentDal.addIntent(intentName, intentDescription, intentTags, rateLimit, price)
+    def getIntentsByTag(self, tag: str) -> List[IntentViewModel]:
+        """Get intents by tag"""
+        intents_data = self.intentDAL.getIntentsByTag(tag)
+        return [IntentViewModel(**intent) for intent in intents_data]
 
-    def updateIntents(self, intentName, intentDescription, intentTags, rateLimit, price, Intents_ID):
-        return self.intentDal.updateIntent(intentName, intentDescription, intentTags, rateLimit, price, Intents_ID)
+    def addIntent(self, intentName: str, intentDescription: str,
+                  intentTags: List[str], rateLimit: int, price: float) -> str:
+        """Add a new intent and return the created ID"""
+        return self.intentDAL.addIntent(intentName, intentDescription,
+                                        intentTags, rateLimit, price)
 
-    def deleteIntents(self, Intents_ID):
-        return self.intentDal.deleteIntent(Intents_ID)
+    def updateIntent(self, intentName: str, intentDescription: str,
+                     intentTags: List[str], rateLimit: int, price: float,
+                     intent_id: str) -> bool:
+        """Update an intent and return success status"""
+        return self.intentDAL.updateIntent(intentName, intentDescription,
+                                           intentTags, rateLimit, price, intent_id)
+
+    def deleteIntent(self, intent_id: str) -> bool:
+        """Delete an intent and return success status"""
+        return self.intentDAL.deleteIntent(intent_id)

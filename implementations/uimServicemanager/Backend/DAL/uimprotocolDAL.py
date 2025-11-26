@@ -1,7 +1,7 @@
 ﻿from bson import ObjectId
 from .DBconnection import GetDBConnection
 from pydantic import ValidationError
-from logicLayer.validationModels.UIMprotocolModel import Protocol
+from logicLayer.validationModels.UIMprotocolValidationModel import Protocol
 from logicLayer.Interface.IuimprotocolDAL import IuimProtocol
 
 db = GetDBConnection()

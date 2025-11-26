@@ -1,63 +1,109 @@
 ﻿from bson import ObjectId
+from typing import List, Optional
 from .DBconnection import GetDBConnection
 from pydantic import ValidationError
-from logicLayer.validationModels.intentModel import Intent
+from logicLayer.validationModels.intentValidationModel import IntentDocument
 from logicLayer.Interface.IintentDAL import IintentDAL
 
-
 db = GetDBConnection()
-intents = db["intents"]
+intents_collection = db["intents"]
+
 
 class IntentDAL(IintentDAL):
-    def getIntents(self):
-        IntentsList = []
-        for intent in intents.find():
-            IntentsList.append(intent)
-        return IntentsList
 
-    def getIntentByID(self ,ID):
-        Intent = intents.find_one({"_id": ObjectId(ID)})
-        return Intent
+    def _document_to_dict(self, doc: dict) -> Optional[dict]:
+        """Convert MongoDB document to dictionary with string ID"""
+        if not doc:
+            return None
+        doc["id"] = str(doc.pop("_id"))
+        return doc
 
-    def getIntentByTag(self, Tag):
-        Intent = intents.find_one({"tags": ObjectId(Tag)})
-        return Intent
+    def getIntents(self) -> List[dict]:
+        """Retrieve all intents from database"""
+        intents_list = []
+        for intent in intents_collection.find():
+            intents_list.append(self._document_to_dict(intent))
+        return intents_list
 
-    def addIntent(self, intentname, intentDescription, intentTags, rateLimit, price):
-        try:
-            data = {
-                "name": intentname,
-                "description": intentDescription,
-                "tags": intentTags,
-                "rateLimit": rateLimit,
-                "price": price
-            }
-            intent = Intent(**data)
-            result = intents.insert_one(intent.model_dump(by_alias=True))
-            return f"success: inserted with Id {result.inserted_id}"
+    def getIntentByID(self, intent_id: str) -> Optional[dict]:
+        """Retrieve a single intent by ID"""
+        if not ObjectId.is_valid(intent_id):
+            return None
 
-        except ValidationError as e:
-            # Convert the error to a JSON-serializable dict
-            return {"error": e.errors()}  # e.errors() is a list of validation issues
+        intent = intents_collection.find_one({"_id": ObjectId(intent_id)})
+        return self._document_to_dict(intent)
 
-    def updateIntent(self, intentName, intentDescription, intentTags, rateLimit, price, Intents_ID):
+    def getIntentsByTag(self, tag: str) -> List[dict]:
+        """Retrieve intents that contain the specified tag"""
+        intents_list = []
+        # Search for tag in the tags array (tags are strings, not ObjectIds)
+        for intent in intents_collection.find({"tags": tag}):
+            intents_list.append(self._document_to_dict(intent))
+        return intents_list
+
+    def addIntent(self, intentName: str, intentDescription: str,
+                  intentTags: List[str], rateLimit: int, price: float) -> str:
+        """Add a new intent to the database"""
         try:
             data = {
                 "name": intentName,
                 "description": intentDescription,
                 "tags": intentTags,
                 "rateLimit": rateLimit,
-                "price": price,
+                "price": price
             }
-            intent = Intent(**data)
-            result = intents.update_one({"_id": ObjectId(Intents_ID)}, {"$set": intent})
-            return f"success: updated with Id {result.inserted_id}"
-        except ValidationError as e:
-            return e
+            # Validate data using Pydantic model
+            intent_doc = IntentDocument(**data)
 
-    def deleteIntent(self, Intents_ID):
-        try:
-            intents.delete_one({"_id": ObjectId(Intents_ID)})
-            return f"success: deleted with Id {Intents_ID}"
+            # Insert into MongoDB
+            result = intents_collection.insert_one(
+                intent_doc.model_dump(by_alias=True, exclude={"id"})
+            )
+            return str(result.inserted_id)
+
         except ValidationError as e:
-            return e
+            raise ValueError(f"Validation error: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Database error: {str(e)}")
+
+    def updateIntent(self, intentName: str, intentDescription: str,
+                     intentTags: List[str], rateLimit: int, price: float,
+                     intent_id: str) -> bool:
+        """Update an existing intent"""
+        if not ObjectId.is_valid(intent_id):
+            raise ValueError("Invalid intent ID format")
+
+        try:
+            data = {
+                "name": intentName,
+                "description": intentDescription,
+                "tags": intentTags,
+                "rateLimit": rateLimit,
+                "price": price
+            }
+            # Validate data using Pydantic model
+            intent_doc = IntentDocument(**data)
+
+            # Update in MongoDB (exclude _id from update)
+            result = intents_collection.update_one(
+                {"_id": ObjectId(intent_id)},
+                {"$set": intent_doc.model_dump(by_alias=True, exclude={"id"})}
+            )
+
+            return result.matched_count > 0
+
+        except ValidationError as e:
+            raise ValueError(f"Validation error: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Database error: {str(e)}")
+
+    def deleteIntent(self, intent_id: str) -> bool:
+        """Delete an intent from the database"""
+        if not ObjectId.is_valid(intent_id):
+            raise ValueError("Invalid intent ID format")
+
+        try:
+            result = intents_collection.delete_one({"_id": ObjectId(intent_id)})
+            return result.deleted_count > 0
+        except Exception as e:
+            raise Exception(f"Database error: {str(e)}")

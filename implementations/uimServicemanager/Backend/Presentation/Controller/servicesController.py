@@ -1,62 +1,199 @@
 ﻿import re
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 
-# Absolute imports
-from logicLayer.Logic.serviceLogic import serviceLogic
+from logicLayer.Logic.serviceLogic import ServiceLogic
 from DAL.serviceDAL import ServiceDAL
-from Presentation.Viewmodel.serviceViewmodel import ServiceViewModel
-
-
+from Presentation.Viewmodel.serviceViewmodel import (
+    ServiceViewModel,
+    ServiceCreateRequest,
+    ServiceUpdateRequest
+)
 
 router = APIRouter()
 
+
 # Dependency injection for service logic
-def get_service_logic():
+def get_service_logic() -> ServiceLogic:
     dal = ServiceDAL()
-    logic = serviceLogic(dal)
+    logic = ServiceLogic(dal)
     return logic
 
+
+def validate_text_input(text: str, field_name: str) -> None:
+    """Validate text input to prevent injection attacks"""
+    regex = r"^[A-Za-z0-9 .,:;!?\-_()]+$"
+    if not re.match(regex, text):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid {field_name}: contains disallowed characters"
+        )
+
+
 # GET all services
-@router.get("/", response_model=List[ServiceViewModel], description="Get all Services")
-def get_services(logic: serviceLogic = Depends(get_service_logic)):
-    services = logic.getServices()
-    return services
+@router.get(
+    "/",
+    response_model=List[ServiceViewModel],
+    summary="Get all services",
+    description="Retrieve a list of all registered services in the catalog"
+)
+def get_services(logic: ServiceLogic = Depends(get_service_logic)):
+    try:
+        return logic.getServices()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve services: {str(e)}"
+        )
+
 
 # GET service by ID
-@router.get("/{service_id}", response_model=ServiceViewModel, description="Get a Service by ID")
-def get_service_by_id(service_id: str, logic: serviceLogic = Depends(get_service_logic)):
-    service = logic.getServiceByID(service_id)
-    if not service:
-        raise HTTPException(status_code=404, detail="Service not found")
-    return service
+@router.get(
+    "/{service_id}",
+    response_model=ServiceViewModel,
+    summary="Get service by ID",
+    description="Retrieve a specific service by its unique identifier"
+)
+def get_service_by_id(
+        service_id: str,
+        logic: ServiceLogic = Depends(get_service_logic)
+):
+    try:
+        service = logic.getServiceByID(service_id)
+        if not service:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Service with ID '{service_id}' not found"
+            )
+        return service
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve service: {str(e)}"
+        )
+
 
 # POST a new service
-@router.post("/", response_model=dict, description="Create a Service", status_code=201)
-def create_service(service: ServiceViewModel, logic: serviceLogic = Depends(get_service_logic)):
-    regex = r"^[A-Za-z0-9 .]+$"
-    if not re.match(regex, service.name):
-        raise HTTPException(status_code=400, detail="Invalid name")
-    if not re.match(regex, service.description):
-        raise HTTPException(status_code=400, detail="Invalid description")
+@router.post(
+    "/",
+    response_model=dict,
+    summary="Create a new service",
+    description="Register a new service in the catalog",
+    status_code=status.HTTP_201_CREATED
+)
+def create_service(
+        service: ServiceCreateRequest,
+        logic: ServiceLogic = Depends(get_service_logic)
+):
+    try:
+        # Validate inputs
+        validate_text_input(service.name, "name")
+        validate_text_input(service.description, "description")
 
-    result = logic.addService(service.name, service.description, service.service_URL)
-    return {"message": result}
+        # Create service
+        service_id = logic.addService(
+            service.name,
+            service.description,
+            service.service_URL
+        )
+
+        return {
+            "message": "Service created successfully",
+            "service_id": service_id
+        }
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create service: {str(e)}"
+        )
+
 
 # PUT update service
-@router.put("/{service_id}", response_model=dict, description="Update a Service")
-def update_service(service_id: str, service: ServiceViewModel, logic: serviceLogic = Depends(get_service_logic)):
-    regex = r"^[A-Za-z0-9 .]+$"
-    if not re.match(regex, service.name):
-        raise HTTPException(status_code=400, detail="Invalid name")
-    if not re.match(regex, service.description):
-        raise HTTPException(status_code=400, detail="Invalid description")
+@router.put(
+    "/{service_id}",
+    response_model=dict,
+    summary="Update a service",
+    description="Update an existing service's information"
+)
+def update_service(
+        service_id: str,
+        service: ServiceUpdateRequest,
+        logic: ServiceLogic = Depends(get_service_logic)
+):
+    try:
+        # Validate inputs
+        validate_text_input(service.name, "name")
+        validate_text_input(service.description, "description")
 
-    result = logic.updateService(service.name, service.description, service.service_URL, service_id)
-    return {"message": result}
+        # Update service
+        success = logic.updateService(
+            service.name,
+            service.description,
+            service.service_URL,
+            service_id
+        )
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Service with ID '{service_id}' not found"
+            )
+
+        return {
+            "message": "Service updated successfully",
+            "service_id": service_id
+        }
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update service: {str(e)}"
+        )
+
 
 # DELETE a service
-@router.delete("/{service_id}", response_model=dict, description="Delete a Service")
-def delete_service(service_id: str, logic: serviceLogic = Depends(get_service_logic)):
-    result = logic.deleteService(service_id)
-    return {"message": result}
+@router.delete(
+    "/{service_id}",
+    response_model=dict,
+    summary="Delete a service",
+    description="Remove a service from the catalog"
+)
+def delete_service(
+        service_id: str,
+        logic: ServiceLogic = Depends(get_service_logic)
+):
+    try:
+        success = logic.deleteService(service_id)
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Service with ID '{service_id}' not found"
+            )
+
+        return {
+            "message": "Service deleted successfully",
+            "service_id": service_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete service: {str(e)}"
+        )
