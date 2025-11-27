@@ -1,0 +1,333 @@
+{
+  "services": [
+    {
+      "name": "OpenWeather API",
+      "description": "Real-time weather data and forecasts for any location worldwide",
+      "url": "https://api.openweathermap.org/data/2.5",
+      "intents": [
+        {
+          "name": "get_current_weather",
+          "description": "Get current weather conditions for a specific location",
+          "tags": ["weather", "current", "temperature"],
+          "rateLimit": 1000,
+          "price": 0.0
+        },
+        {
+          "name": "get_forecast",
+          "description": "Get weather forecast for the next 5 days",
+          "tags": ["weather", "forecast", "prediction"],
+          "rateLimit": 1000,
+          "price": 0.01
+        },
+        {
+          "name": "get_weather_alerts",
+          "description": "Get severe weather alerts for a region",
+          "tags": ["weather", "alerts", "warnings"],
+          "rateLimit": 500,
+          "price": 0.005
+        }
+      ]
+    },
+    {
+      "name": "Stripe Payment API",
+      "description": "Process payments and manage billing for your applications",
+      "url": "https://api.stripe.com/v1",
+      "intents": [
+        {
+          "name": "create_payment",
+          "description": "Process a one-time payment",
+          "tags": ["payment", "transaction", "charge"],
+          "rateLimit": 100,
+          "price": 0.05
+        },
+        {
+          "name": "create_subscription",
+          "description": "Set up recurring subscription billing",
+          "tags": ["payment", "subscription", "recurring"],
+          "rateLimit": 100,
+          "price": 0.08
+        },
+        {
+          "name": "refund_payment",
+          "description": "Issue a refund for a previous payment",
+          "tags": ["payment", "refund", "cancellation"],
+          "rateLimit": 100,
+          "price": 0.03
+        },
+        {
+          "name": "get_payment_history",
+          "description": "Retrieve payment history for a customer",
+          "tags": ["payment", "history", "transactions"],
+          "rateLimit": 200,
+          "price": 0.01
+        }
+      ]
+    },
+    {
+      "name": "SendGrid Email API",
+      "description": "Send transactional and marketing emails at scale",
+      "url": "https://api.sendgrid.com/v3",
+      "intents": [
+        {
+          "name": "send_email",
+          "description": "Send a single email to one or more recipients",
+          "tags": ["email", "send", "notification"],
+          "rateLimit": 500,
+          "price": 0.001
+        },
+        {
+          "name": "send_template_email",
+          "description": "Send an email using a predefined template",
+          "tags": ["email", "template", "marketing"],
+          "rateLimit": 500,
+          "price": 0.002
+        },
+        {
+          "name": "schedule_email",
+          "description": "Schedule an email to be sent at a future time",
+          "tags": ["email", "schedule", "automation"],
+          "rateLimit": 200,
+          "price": 0.003
+        }
+      ]
+    },
+    {
+      "name": "Google Maps API",
+      "description": "Geocoding, directions, and place information worldwide",
+      "url": "https://maps.googleapis.com/maps/api",
+      "intents": [
+        {
+          "name": "geocode_address",
+          "description": "Convert an address to geographic coordinates",
+          "tags": ["maps", "geocoding", "location"],
+          "rateLimit": 1000,
+          "price": 0.005
+        },
+        {
+          "name": "get_directions",
+          "description": "Get directions between two locations",
+          "tags": ["maps", "directions", "routing"],
+          "rateLimit": 1000,
+          "price": 0.01
+        },
+        {
+          "name": "find_nearby_places",
+          "description": "Find places of interest near a location",
+          "tags": ["maps", "places", "search"],
+          "rateLimit": 500,
+          "price": 0.02
+        },
+        {
+          "name": "get_place_details",
+          "description": "Get detailed information about a specific place",
+          "tags": ["maps", "places", "details"],
+          "rateLimit": 500,
+          "price": 0.015
+        }
+      ]
+    },
+    {
+      "name": "Twilio SMS API",
+      "description": "Send and receive SMS messages programmatically",
+      "url": "https://api.twilio.com/2010-04-01",
+      "intents": [
+        {
+          "name": "send_sms",
+          "description": "Send an SMS message to a phone number",
+          "tags": ["sms", "message", "notification"],
+          "rateLimit": 100,
+          "price": 0.0075
+        },
+        {
+          "name": "send_mms",
+          "description": "Send an MMS message with media content",
+          "tags": ["sms", "mms", "media"],
+          "rateLimit": 100,
+          "price": 0.02
+        },
+        {
+          "name": "get_message_status",
+          "description": "Check the delivery status of a sent message",
+          "tags": ["sms", "status", "tracking"],
+          "rateLimit": 200,
+          "price": 0.001
+        }
+      ]
+    },
+    {
+      "name": "GitHub API",
+      "description": "Interact with GitHub repositories, issues, and pull requests",
+      "url": "https://api.github.com",
+      "intents": [
+        {
+          "name": "create_repository",
+          "description": "Create a new GitHub repository",
+          "tags": ["github", "repository", "create"],
+          "rateLimit": 5000,
+          "price": 0.0
+        },
+        {
+          "name": "create_issue",
+          "description": "Create a new issue in a repository",
+          "tags": ["github", "issue", "bug"],
+          "rateLimit": 5000,
+          "price": 0.0
+        },
+        {
+          "name": "create_pull_request",
+          "description": "Create a new pull request",
+          "tags": ["github", "pull-request", "code-review"],
+          "rateLimit": 5000,
+          "price": 0.0
+        },
+        {
+          "name": "get_repository_info",
+          "description": "Get detailed information about a repository",
+          "tags": ["github", "repository", "info"],
+          "rateLimit": 5000,
+          "price": 0.0
+        },
+        {
+          "name": "list_commits",
+          "description": "List commits in a repository",
+          "tags": ["github", "commits", "history"],
+          "rateLimit": 5000,
+          "price": 0.0
+        }
+      ]
+    },
+    {
+      "name": "Slack API",
+      "description": "Send messages and interact with Slack workspaces",
+      "url": "https://slack.com/api",
+      "intents": [
+        {
+          "name": "send_message",
+          "description": "Send a message to a Slack channel",
+          "tags": ["slack", "message", "notification"],
+          "rateLimit": 100,
+          "price": 0.0
+        },
+        {
+          "name": "create_channel",
+          "description": "Create a new Slack channel",
+          "tags": ["slack", "channel", "create"],
+          "rateLimit": 50,
+          "price": 0.0
+        },
+        {
+          "name": "upload_file",
+          "description": "Upload a file to Slack",
+          "tags": ["slack", "file", "upload"],
+          "rateLimit": 20,
+          "price": 0.0
+        },
+        {
+          "name": "get_user_info",
+          "description": "Get information about a Slack user",
+          "tags": ["slack", "user", "profile"],
+          "rateLimit": 100,
+          "price": 0.0
+        }
+      ]
+    },
+    {
+      "name": "News API",
+      "description": "Access breaking news and historical articles from news sources",
+      "url": "https://newsapi.org/v2",
+      "intents": [
+        {
+          "name": "get_top_headlines",
+          "description": "Get current top headlines from news sources",
+          "tags": ["news", "headlines", "current"],
+          "rateLimit": 1000,
+          "price": 0.0
+        },
+        {
+          "name": "search_articles",
+          "description": "Search for articles by keyword or topic",
+          "tags": ["news", "search", "articles"],
+          "rateLimit": 1000,
+          "price": 0.01
+        },
+        {
+          "name": "get_sources",
+          "description": "Get available news sources",
+          "tags": ["news", "sources", "publishers"],
+          "rateLimit": 1000,
+          "price": 0.0
+        }
+      ]
+    },
+    {
+      "name": "Spotify API",
+      "description": "Search and control music playback on Spotify",
+      "url": "https://api.spotify.com/v1",
+      "intents": [
+        {
+          "name": "search_tracks",
+          "description": "Search for music tracks",
+          "tags": ["spotify", "search", "music"],
+          "rateLimit": 180,
+          "price": 0.0
+        },
+        {
+          "name": "get_track_info",
+          "description": "Get detailed information about a track",
+          "tags": ["spotify", "track", "metadata"],
+          "rateLimit": 180,
+          "price": 0.0
+        },
+        {
+          "name": "create_playlist",
+          "description": "Create a new playlist",
+          "tags": ["spotify", "playlist", "create"],
+          "rateLimit": 180,
+          "price": 0.0
+        },
+        {
+          "name": "add_to_playlist",
+          "description": "Add tracks to a playlist",
+          "tags": ["spotify", "playlist", "modify"],
+          "rateLimit": 180,
+          "price": 0.0
+        }
+      ]
+    },
+    {
+      "name": "OpenAI API",
+      "description": "Access GPT models for text generation and analysis",
+      "url": "https://api.openai.com/v1",
+      "intents": [
+        {
+          "name": "generate_text",
+          "description": "Generate text using GPT models",
+          "tags": ["ai", "generation", "text"],
+          "rateLimit": 3500,
+          "price": 0.002
+        },
+        {
+          "name": "analyze_sentiment",
+          "description": "Analyze the sentiment of text",
+          "tags": ["ai", "sentiment", "analysis"],
+          "rateLimit": 3500,
+          "price": 0.001
+        },
+        {
+          "name": "summarize_text",
+          "description": "Create a summary of long text",
+          "tags": ["ai", "summary", "text"],
+          "rateLimit": 3500,
+          "price": 0.0015
+        },
+        {
+          "name": "translate_text",
+          "description": "Translate text between languages",
+          "tags": ["ai", "translation", "language"],
+          "rateLimit": 3500,
+          "price": 0.001
+        }
+      ]
+    }
+  ]
+}
