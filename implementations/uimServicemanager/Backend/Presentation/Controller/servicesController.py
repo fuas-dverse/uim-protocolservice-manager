@@ -7,7 +7,8 @@ from DAL.serviceDAL import ServiceDAL
 from Presentation.Viewmodel.serviceViewmodel import (
     ServiceViewModel,
     ServiceCreateRequest,
-    ServiceUpdateRequest
+    ServiceUpdateRequest,
+    ServiceWithIntentsRequest
 )
 
 router = APIRouter()
@@ -96,7 +97,8 @@ def create_service(
         service_id = logic.addService(
             service.name,
             service.description,
-            service.service_URL
+            service.service_URL,
+            service.intent_ids
         )
 
         return {
@@ -114,6 +116,60 @@ def create_service(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create service: {str(e)}"
+        )
+
+
+# POST a new service with intents
+@router.post(
+    "/with-intents",
+    response_model=dict,
+    summary="Create a service with its intents",
+    description="Register a new service and create its intents in a single request",
+    status_code=status.HTTP_201_CREATED
+)
+def create_service_with_intents(
+        request: ServiceWithIntentsRequest,
+        logic: ServiceLogic = Depends(get_service_logic)
+):
+    try:
+        # Validate service inputs
+        validate_text_input(request.name, "name")
+        validate_text_input(request.description, "description")
+
+        # Validate each intent's text fields
+        for idx, intent in enumerate(request.intents):
+            if "name" in intent:
+                validate_text_input(intent["name"], f"intent[{idx}].name")
+            if "description" in intent:
+                validate_text_input(intent["description"], f"intent[{idx}].description")
+            if "tags" in intent and isinstance(intent["tags"], list):
+                for tag in intent["tags"]:
+                    validate_text_input(tag, f"intent[{idx}].tag")
+
+        # Create service with intents
+        service_id, intent_ids = logic.addServiceWithIntents(
+            request.name,
+            request.description,
+            request.service_URL,
+            request.intents
+        )
+
+        return {
+            "message": "Service and intents created successfully",
+            "service_id": service_id,
+            "intent_ids": intent_ids
+        }
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create service with intents: {str(e)}"
         )
 
 
@@ -139,6 +195,7 @@ def update_service(
             service.name,
             service.description,
             service.service_URL,
+            service.intent_ids,
             service_id
         )
 

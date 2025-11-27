@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from bson import ObjectId
 
 
@@ -32,6 +32,7 @@ class ServiceDocument(BaseModel):
     name: str = Field(..., min_length=2, max_length=50)
     description: str = Field(..., min_length=1, max_length=500)
     service_URL: Optional[str] = Field(None, max_length=500)
+    intent_ids: List[str] = Field(default_factory=list, description="List of intent IDs")
 
     model_config = {
         "populate_by_name": True,

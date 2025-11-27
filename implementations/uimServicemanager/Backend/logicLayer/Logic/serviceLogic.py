@@ -22,16 +22,24 @@ class ServiceLogic:
         return None
 
     def addService(self, serviceName: str, serviceDescription: str,
-                   service_URL: Optional[str]) -> str:
+                   service_URL: Optional[str], intent_ids: List[str]) -> str:
         """Add a new service and return the created ID"""
-        return self.serviceDAL.addService(serviceName, serviceDescription, service_URL)
+        return self.serviceDAL.addService(serviceName, serviceDescription,
+                                          service_URL, intent_ids)
 
     def updateService(self, serviceName: str, serviceDescription: str,
-                      service_URL: Optional[str], service_id: str) -> bool:
+                      service_URL: Optional[str], intent_ids: List[str],
+                      service_id: str) -> bool:
         """Update a service and return success status"""
         return self.serviceDAL.updateService(serviceName, serviceDescription,
-                                             service_URL, service_id)
+                                             service_URL, intent_ids, service_id)
 
     def deleteService(self, service_id: str) -> bool:
         """Delete a service and return success status"""
         return self.serviceDAL.deleteService(service_id)
+
+    def addServiceWithIntents(self, serviceName: str, serviceDescription: str,
+                              service_URL: Optional[str], intents_data: List[dict]) -> tuple[str, List[str]]:
+        """Add a service with its intents in one call"""
+        return self.serviceDAL.addServiceWithIntents(serviceName, serviceDescription,
+                                                     service_URL, intents_data)
