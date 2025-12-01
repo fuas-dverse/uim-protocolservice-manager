@@ -63,6 +63,8 @@ if start_frontend:
                 cwd=FRONTEND_DIR,
                 shell=True
             )
+            print("⏳ Waiting for Vite to initialize...")
+            time.sleep(5)
             print("✅ Frontend starting on http://localhost:3000 (check output above for any errors)")
         except Exception as e:
             print(f"⚠️  Failed to start frontend: {e}")
