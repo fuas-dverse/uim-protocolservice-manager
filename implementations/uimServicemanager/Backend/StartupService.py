@@ -13,7 +13,7 @@ MONGO_PORT = "27017"
 
 # --- Ask user if they want to start frontend ---
 print("=" * 50)
-print("DVerse Platform Startup")
+print("DVerse Catalogue Startup")
 print("=" * 50)
 response = input("\n🎨 Do you want to start the frontend? (y/n): ").strip().lower()
 start_frontend = response in ['y', 'yes']
@@ -65,7 +65,7 @@ if start_frontend:
             )
             print("⏳ Waiting for Vite to initialize...")
             time.sleep(5)
-            print("✅ Frontend starting on http://localhost:3000 (check output above for any errors)")
+            print("✅ Frontend starting on http://localhost:3000")
         except Exception as e:
             print(f"⚠️  Failed to start frontend: {e}")
             print("   Continuing without frontend...")

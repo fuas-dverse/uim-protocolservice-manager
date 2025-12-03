@@ -1,4 +1,4 @@
-﻿# Chatbot Development - Startup Steps
+﻿# Startup Steps
 
 ## Prerequisites
 - Docker Desktop running
@@ -25,26 +25,18 @@ docker run --name nats-server --rm -p 4222:4222 -p 8222:8222 nats:latest
 
 ---
 
-### 2. Start FastAPI Backend (UIM Catalogue)
+### 2. Start FastAPI Backend and Optional Frontend (UIM Catalogue)
 Open a **new terminal** and navigate to your backend directory:
 ```bash
-cd /path/to/your/backend
-uvicorn main:app --reload --port 8000
+cd implementations/uimServicemanager/Backend
+python StartupService.py
+#2nd expected output if started with Frontend
 ```
 
 **Expected output:**
 ```
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 INFO:     Started reloader process
-```
-
----
-
-### 3. Start Frontend (Optional - if testing UI)
-Open a **new terminal** and navigate to your frontend directory:
-```bash
-cd /path/to/your/frontend
-npm run dev
 ```
 
 **Expected output:**
@@ -58,9 +50,8 @@ VITE vX.X.X  ready in XXX ms
 ### 4. Start Chatbot Service
 Open a **new terminal** and navigate to your chatbot directory:
 ```bash
-cd /path/to/your/chatbot
-faststream run main:app
-# Or python main.py if using custom runner
+cd /implemenation/uimServicemanager/agent-query-sevice
+python main_keyword.py
 ```
 
 ---

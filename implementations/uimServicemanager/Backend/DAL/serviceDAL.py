@@ -47,6 +47,15 @@ class ServiceDAL(IserviceDAL):
         service = services_collection.find_one({"_id": ObjectId(service_id)})
         return self._document_to_dict(service)
 
+    def getServicesByName(self, name_query: str) -> List[dict]:
+        """Search services by name using case-insensitive partial matching"""
+        services_list = []
+        # MongoDB regex for case-insensitive partial match
+        regex_pattern = {"$regex": name_query, "$options": "i"}
+        for service in services_collection.find({"name": regex_pattern}):
+            services_list.append(self._document_to_dict(service))
+        return services_list
+
     def addService(self, serviceName: str, serviceDescription: str,
                    service_URL: Optional[str], intent_ids: List[str]) -> str:
         """Add a new service to the database"""

@@ -1,5 +1,5 @@
 ﻿import re
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List
 
 from logicLayer.Logic.serviceLogic import ServiceLogic
@@ -31,16 +31,24 @@ def validate_text_input(text: str, field_name: str) -> None:
         )
 
 
-# GET all services
+# GET all services OR search by name using query parameter
 @router.get(
     "/",
     response_model=List[ServiceViewModel],
-    summary="Get all services",
-    description="Retrieve a list of all registered services in the catalog"
+    summary="Get all services or search by name",
+    description="Retrieve all services or filter by name using ?name=searchterm query parameter (case-insensitive partial match)"
 )
-def get_services(logic: ServiceLogic = Depends(get_service_logic)):
+def get_services(
+        name: str = Query(None, description="Search services by name (partial match, case-insensitive)"),
+        logic: ServiceLogic = Depends(get_service_logic)
+):
     try:
-        return logic.getServices()
+        if name:
+            # Search by name if provided
+            return logic.getServicesByName(name)
+        else:
+            # Return all services
+            return logic.getServices()
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -15,6 +15,11 @@ class IserviceDAL(ABC):
         pass
 
     @abstractmethod
+    def getServicesByName(self, name_query: str) -> List[dict]:
+        """Search services by name (partial match, case-insensitive)"""
+        pass
+
+    @abstractmethod
     def addService(self, serviceName: str, serviceDescription: str,
                    service_URL: Optional[str], intent_ids: List[str]) -> str:
         """Add a new service and return its ID"""

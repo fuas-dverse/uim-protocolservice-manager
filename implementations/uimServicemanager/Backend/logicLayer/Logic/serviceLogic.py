@@ -21,6 +21,11 @@ class ServiceLogic:
             return ServiceViewModel(**service_data)
         return None
 
+    def getServicesByName(self, name_query: str) -> List[ServiceViewModel]:
+        """Search services by name"""
+        services_data = self.serviceDAL.getServicesByName(name_query)
+        return [ServiceViewModel(**service) for service in services_data]
+
     def addService(self, serviceName: str, serviceDescription: str,
                    service_URL: Optional[str], intent_ids: List[str]) -> str:
         """Add a new service and return the created ID"""
