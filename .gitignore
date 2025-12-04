@@ -197,3 +197,6 @@ implementations/uimServicemanager/Demo-Frontend/node_modules
 implementations/uimServicemanager/Backend/DAL/seed_data.json
 implementations/uimServicemanager/Backend/DAL/seed_database.py
 
+# to ensure no keys are being uploaded
+implementations/uimServicemanager/caddy_data/caddy/certificates
+
