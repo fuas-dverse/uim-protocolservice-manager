@@ -2,7 +2,7 @@
 
 services:
   catalogue:
-    build: ./Backend
+    build: API
     container_name: catalogue
     expose:
       - "8000"

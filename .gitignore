@@ -181,9 +181,9 @@ cython_debug/
 .qodo
 
 # MongoDB data, log and binaries
-implementations/uimServicemanager/Backend/DAL/mongoDB-Configs/bin/
-implementations/uimServicemanager/Backend/DAL/mongoDB-Configs/data/
-implementations/uimServicemanager/Backend/DAL/mongoDB-Configs/log/
+implementations/uimServicemanager/API/DAL/mongoDB-Configs/bin/
+implementations/uimServicemanager/API/DAL/mongoDB-Configs/data/
+implementations/uimServicemanager/API/DAL/mongoDB-Configs/log/
 
 
 implementations/Testing-env/mongodb-config/bin/
@@ -194,8 +194,8 @@ implementations/Testing-env
 
 implementations/uimServicemanager/Demo-Frontend/node_modules
 
-implementations/uimServicemanager/Backend/DAL/seed_data.json
-implementations/uimServicemanager/Backend/DAL/seed_database.py
+implementations/uimServicemanager/API/DAL/seed_data.json
+implementations/uimServicemanager/API/DAL/seed_database.py
 
 # to ensure no keys are being uploaded
 implementations/uimServicemanager/caddy_data/caddy/certificates
