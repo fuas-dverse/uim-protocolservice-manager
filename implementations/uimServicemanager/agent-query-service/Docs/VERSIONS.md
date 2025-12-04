@@ -140,9 +140,6 @@ catalogue_agent = Agent('ollama:llama3.2', ...)  # Free local
 **Q: Can I run both at the same time?**
 A: No, they both use the same NATS topics. Pick one.
 
-**Q: Which is better for my research project?**
-A: Start with keyword version to demonstrate the architecture. Mention AI version as "future enhancement" in your report.
-
 **Q: What if OpenAI changes their API?**
 A: Pydantic AI abstracts the provider - just change the model string.
 
@@ -151,7 +148,3 @@ A: Yes! They're completely interchangeable. Same interface, different internals.
 
 **Q: Does the test script work with both?**
 A: Yes! `test_agent.py` works identically with both versions.
-
-
-
-**Bottom line:** Two files, two approaches, one architecture. Pick based on your current needs! 🎯

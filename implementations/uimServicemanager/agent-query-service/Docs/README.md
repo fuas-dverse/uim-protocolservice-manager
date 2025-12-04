@@ -49,11 +49,6 @@ docker run -p 4222:4222 -p 8222:8222 nats:latest
 # Check health:
 curl http://localhost:8222/healthz
 ```
-
-4. **Verify Catalogue API is running:**
-
-```bash
-curl http://localhost:8000/health
 ```
 
 ## Usage

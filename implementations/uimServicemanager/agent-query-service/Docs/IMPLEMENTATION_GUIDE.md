@@ -27,7 +27,7 @@ class ResponseMessage(BaseModel):
 ---
 
 ### 2. `catalogue_client.py` - HTTP Client
-**What:** Talks to your FastAPI backend to search services/intents
+**What:** Talks to the FastAPI backend to search services/intents
 **Why:** AI agent needs a way to query the catalogue
 
 ```python
