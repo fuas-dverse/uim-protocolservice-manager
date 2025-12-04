@@ -1,0 +1,16 @@
+﻿to run the program you need 4 terminals
+first run (with docker desktop open rik...) :
+docker run -p 4222:4222 -p 8222:8222 nats:latest
+
+then when it responds with Server Ready
+in the second terminal start the Backend and database with:
+
+python StartupService.py
+
+when that is done run this in the third:
+
+python main_keyword.py
+
+then lastly to test the A2A run:
+
+python test_agent.py

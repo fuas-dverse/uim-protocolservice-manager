@@ -197,27 +197,6 @@ async def handle_agent_query(msg: QueryMessage) -> ResponseMessage:
         )
 
 
-# Optional: Health check endpoint via NATS
-@broker.subscriber("uim.aqs.health")
-@broker.publisher("uim.aqs.health.response")
-async def health_check(msg: dict) -> dict:
-    """
-    Health check endpoint for monitoring.
-
-    Agents or monitoring services can publish to "uim.aqs.health"
-    to check if the AQS is running.
-    """
-    logger.info("Health check requested")
-
-    return {
-        "status": "healthy",
-        "service": "agent-query-service",
-        "mode": "keyword-based",
-        "nats_connected": True,
-        "note": "Backend health check not available"
-    }
-
-
 if __name__ == "__main__":
     logger.info("Starting AQS in Keyword-Based Mode...")
     asyncio.run(app.run())
