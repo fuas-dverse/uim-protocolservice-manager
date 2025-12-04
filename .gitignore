@@ -192,7 +192,7 @@ implementations/Testing-env/mongodb-config/log/
 
 implementations/Testing-env
 
-implementations/uimServicemanager/Demo-Frontend/node_modules
+implementations/uimServicemanager/Client-Interface/node_modules
 
 implementations/uimServicemanager/API/DAL/seed_data.json
 implementations/uimServicemanager/API/DAL/seed_database.py

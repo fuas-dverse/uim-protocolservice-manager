@@ -6,7 +6,7 @@ import sys
 # --- Paths ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # UIMservicemanager folder
 API_DIR = os.path.join(BASE_DIR, "API")
-FRONTEND_DIR = os.path.join(BASE_DIR, "Demo-Frontend")
+FRONTEND_DIR = os.path.join(BASE_DIR, "Client-Interface")
 MONGO_PATH = os.path.join(API_DIR, "DAL", "mongoDB-Configs", "bin", "mongod.exe")
 DB_PATH = os.path.join(API_DIR, "DAL", "mongoDB-Configs", "data")
 LOG_PATH = os.path.join(API_DIR, "DAL", "mongoDB-Configs", "log", "mongod.log")
