@@ -1,0 +1,32 @@
+{
+  "services": [
+    {
+      "name": "arXiv API",
+      "description": "Access to scientific research papers, academic papers, preprints, and scholarly articles from arXiv.org. Search papers, find research, discover academic publications.",
+      "url": "http://export.arxiv.org/api",
+      "intents": [
+        {
+          "name": "search_papers",
+          "description": "Search for research papers by query, author, or category",
+          "tags": ["research", "papers", "academic", "search"],
+          "rateLimit": 30,
+          "price": 0.0
+        },
+        {
+          "name": "get_paper_details",
+          "description": "Get detailed information about a specific paper by arXiv ID",
+          "tags": ["research", "papers", "academic", "details"],
+          "rateLimit": 30,
+          "price": 0.0
+        },
+        {
+          "name": "get_recent_papers",
+          "description": "Get the most recent papers in a specific category",
+          "tags": ["research", "papers", "academic", "recent"],
+          "rateLimit": 30,
+          "price": 0.0
+        }
+      ]
+    }
+  ]
+}

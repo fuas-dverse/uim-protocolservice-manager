@@ -110,7 +110,7 @@ if start_frontend:
             )
             print("⏳ Waiting for Vite to initialize (5 seconds)...")
             time.sleep(5)
-            print("✅ Frontend available at http://localhost:5173")
+            print("✅ Frontend available at http://localhost:3000")
         except Exception as e:
             print(f"⚠️  Failed to start frontend: {e}")
             print("   Continuing without frontend...")
@@ -128,7 +128,7 @@ else:
 print(f"   • API API: http://localhost:8000")
 print(f"   • API API Docs: http://localhost:8000/docs")
 if frontend_process:
-    print(f"   • Frontend:    http://localhost:5173")
+    print(f"   • Frontend:    http://localhost:3000")
 
 print("\n📖 Available Endpoints:")
 print("   REST API:")

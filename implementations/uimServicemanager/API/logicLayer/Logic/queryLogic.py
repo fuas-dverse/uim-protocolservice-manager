@@ -137,38 +137,57 @@ Be concise but informative. Focus on helping users find what they need."""
         """
         Process query using simple keyword matching.
 
-        This is the fast, simple approach that doesn't require AI.
+        IMPROVED: Searches ALL keywords across BOTH name AND description fields.
         """
-        logger.info("🔍 Using keyword-based query processing")
+        logger.info("🔍 Using keyword-based query processing (IMPROVED)")
 
         # Extract keywords
         keywords = self._extract_keywords(query)
-        # Use the first (most relevant) keyword for search, not all joined
-        # This prevents searching for exact phrases like "weather services"
-        search_query = keywords[0] if keywords else query
-
         logger.info(f"   Extracted keywords: {keywords}")
-        logger.info(f"   Using primary keyword: '{search_query}'")
 
-        # Search services
-        services_data = self.serviceDAL.getServicesByName(search_query)
+        if not keywords:
+            # No keywords extracted, return empty
+            return QueryResponse(
+                query=query,
+                response="No meaningful keywords found in your query. Try being more specific.",
+                services_found=[],
+                intents_found=[],
+                success=True,
+                error=None,
+                mode="keyword"
+            )
 
-        # Client-side filtering if needed
-        if keywords and services_data:
-            filtered = []
-            for service in services_data:
-                name = service.get('name', '').lower()
-                desc = service.get('description', '').lower()
-                if any(kw.lower() in name or kw.lower() in desc for kw in keywords):
-                    filtered.append(service)
-            services_data = filtered if filtered else services_data[:3]
+        # Get ALL services and filter client-side
+        # This is more flexible than trying to construct a complex MongoDB query
+        all_services = self.serviceDAL.getServices()
 
-        logger.info(f"📦 Found {len(services_data)} services")
+        # Score each service based on keyword matches
+        scored_services = []
+        for service in all_services:
+            name = service.get('name', '').lower()
+            desc = service.get('description', '').lower()
 
-        # Get intents from the found services (they're already populated in serviceDAL)
+            # Count how many keywords match
+            matches = 0
+            for keyword in keywords:
+                kw_lower = keyword.lower()
+                if kw_lower in name:
+                    matches += 2  # Name matches are worth more
+                if kw_lower in desc:
+                    matches += 1  # Description matches
+
+            if matches > 0:
+                scored_services.append((service, matches))
+
+        # Sort by score (highest first) and take top results
+        scored_services.sort(key=lambda x: x[1], reverse=True)
+        services_data = [s[0] for s in scored_services[:5]]  # Top 5 matches
+
+        logger.info(f"📦 Found {len(services_data)} services matching keywords")
+
+        # Get intents from the found services
         all_intents = []
         for service in services_data[:3]:  # Only first 3 to avoid too many entries
-            # Intents are already populated in the 'intents' field by serviceDAL
             intents = service.get('intents', [])
             all_intents.extend(intents)
 
@@ -185,7 +204,7 @@ Be concise but informative. Focus on helping users find what they need."""
             if all_intents:
                 response_text += f" These services offer {len(all_intents)} capabilities."
         else:
-            response_text = f"No services found matching '{query}'. Try different keywords."
+            response_text = f"No services found matching '{query}'. Try different keywords like: {', '.join(keywords[:3])}."
 
         # Convert to Pydantic models
         services_info = [
@@ -240,10 +259,6 @@ Be concise but informative. Focus on helping users find what they need."""
             return await self._process_query_keyword(query, agent_id, context)
 
         try:
-            # For AI mode, we need to use a different approach
-            # Since we're integrated into the backend, we directly access DAL
-            # instead of using HTTP calls
-
             # Extract keywords as a fallback
             keywords = self._extract_keywords(query)
             search_query = " ".join(keywords) if keywords else query
@@ -316,7 +331,7 @@ Be concise but informative. Focus on helping users find what they need."""
         stop_words = {
             'find', 'me', 'show', 'get', 'what', 'are', 'the', 'is', 'can',
             'you', 'i', 'a', 'an', 'and', 'or', 'for', 'with', 'that', 'this',
-            'have', 'has', 'need', 'want', 'looking', 'search'
+            'have', 'has', 'need', 'want', 'looking', 'search', 'about'
         }
 
         # Split into words and clean

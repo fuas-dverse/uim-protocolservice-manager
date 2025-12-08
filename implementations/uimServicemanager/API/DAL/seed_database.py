@@ -4,7 +4,9 @@ This script loads mock data from seed_data.json and populates the MongoDB databa
 using the existing DAL layer for proper validation and relationship handling.
 
 Usage:
-    python seed_database.py
+    python DAL/seed_database.py  (from API directory)
+    or
+    python seed_database.py (from DAL directory)
 """
 
 import json
@@ -12,8 +14,12 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Any
 
+# Add parent directory to path so we can import from DAL and logicLayer
+current_dir = Path(__file__).parent
+parent_dir = current_dir.parent
+sys.path.insert(0, str(parent_dir))
+
 # Import your DAL and Logic layers
-# Adjust these imports based on your actual project structure
 from DAL.serviceDAL import ServiceDAL
 from DAL.intentDAL import IntentDAL
 from logicLayer.Logic.serviceLogic import ServiceLogic
@@ -202,7 +208,7 @@ def main():
     seeder = DatabaseSeeder(service_logic, intent_logic)
 
     # Load seed data
-    seed_file = "seed_data.json"
+    seed_file = "arxiv_service_seed.json"
     seed_data = seeder.load_seed_data(seed_file)
 
     # Seed the database
