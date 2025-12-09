@@ -1,258 +1,332 @@
 {
   "services": [
     {
+      "name": "arXiv API",
+      "description": "Access to scientific research papers, academic papers, preprints, and scholarly articles from arXiv.org. Search papers on computer science, physics, mathematics, AI, machine learning, and more research topics.",
+      "service_url": "https://export.arxiv.org/api",
+      "service_logo_url": "https://arxiv.org/static/browse/0.3.4/images/arxiv-logo-one-color-white.svg",
+      "service_terms_url": "https://info.arxiv.org/help/api/tou.html",
+      "auth_type": "none",
+      "intents": [
+        {
+          "intent_uid": "arxiv.org:searchPapers:v1",
+          "intent_name": "search_papers",
+          "description": "Search for research papers by query, author, or category",
+          "http_method": "GET",
+          "endpoint_path": "/query",
+          "input_parameters": [
+            {
+              "name": "search_query",
+              "type": "string",
+              "description": "Search query (use 'all:keyword' for general search)",
+              "required": true,
+              "location": "query"
+            },
+            {
+              "name": "start",
+              "type": "integer",
+              "description": "Starting index for results",
+              "required": false,
+              "default": 0,
+              "location": "query"
+            },
+            {
+              "name": "max_results",
+              "type": "integer",
+              "description": "Maximum number of results to return",
+              "required": false,
+              "default": 10,
+              "location": "query"
+            },
+            {
+              "name": "sortBy",
+              "type": "string",
+              "description": "Sort by: relevance, lastUpdatedDate, submittedDate",
+              "required": false,
+              "default": "relevance",
+              "location": "query"
+            },
+            {
+              "name": "sortOrder",
+              "type": "string",
+              "description": "Sort order: ascending or descending",
+              "required": false,
+              "default": "descending",
+              "location": "query"
+            }
+          ],
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "papers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "authors": {"type": "array"},
+                    "summary": {"type": "string"},
+                    "published": {"type": "string"},
+                    "pdf_url": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "tags": ["research", "papers", "academic", "search"],
+          "rateLimit": 30,
+          "price": 0.0
+        },
+        {
+          "intent_uid": "arxiv.org:getPaperDetails:v1",
+          "intent_name": "get_paper_details",
+          "description": "Get detailed information about a specific paper by arXiv ID",
+          "http_method": "GET",
+          "endpoint_path": "/query",
+          "input_parameters": [
+            {
+              "name": "id_list",
+              "type": "string",
+              "description": "arXiv ID (e.g., '2301.12345')",
+              "required": true,
+              "location": "query"
+            }
+          ],
+          "tags": ["research", "papers", "academic", "details"],
+          "rateLimit": 30,
+          "price": 0.0
+        },
+        {
+          "intent_uid": "arxiv.org:getRecentPapers:v1",
+          "intent_name": "get_recent_papers",
+          "description": "Get the most recent papers in a specific category",
+          "http_method": "GET",
+          "endpoint_path": "/query",
+          "input_parameters": [
+            {
+              "name": "search_query",
+              "type": "string",
+              "description": "Category query (e.g., 'cat:cs.AI' for AI papers)",
+              "required": true,
+              "location": "query"
+            },
+            {
+              "name": "max_results",
+              "type": "integer",
+              "description": "Maximum number of results",
+              "required": false,
+              "default": 10,
+              "location": "query"
+            },
+            {
+              "name": "sortBy",
+              "type": "string",
+              "description": "Sort by date",
+              "required": false,
+              "default": "submittedDate",
+              "location": "query"
+            },
+            {
+              "name": "sortOrder",
+              "type": "string",
+              "description": "Descending for most recent",
+              "required": false,
+              "default": "descending",
+              "location": "query"
+            }
+          ],
+          "tags": ["research", "papers", "academic", "recent"],
+          "rateLimit": 30,
+          "price": 0.0
+        }
+      ]
+    },
+    {
       "name": "OpenWeather API",
-      "description": "Real-time weather data and forecasts for any location worldwide",
-      "url": "https://api.openweathermap.org/data/2.5",
+      "description": "Get current weather conditions, forecasts, and weather data for any location worldwide. Includes temperature, humidity, wind speed, conditions, and more.",
+      "service_url": "https://api.openweathermap.org/data/2.5",
+      "service_logo_url": "https://openweathermap.org/themes/openweathermap/assets/img/logo_white_cropped.png",
+      "service_terms_url": "https://openweathermap.org/terms",
+      "service_privacy_url": "https://openweathermap.org/privacy-policy",
+      "auth_type": "api_key",
+      "auth_query_param": "appid",
       "intents": [
         {
-          "name": "get_current_weather",
-          "description": "Get current weather conditions for a specific location",
-          "tags": ["weather", "current", "temperature"],
-          "rateLimit": 1000,
+          "intent_uid": "openweathermap.org:getCurrentWeather:v1",
+          "intent_name": "get_current_weather",
+          "description": "Get current weather conditions for a specific city",
+          "http_method": "GET",
+          "endpoint_path": "/weather",
+          "input_parameters": [
+            {
+              "name": "q",
+              "type": "string",
+              "description": "City name (e.g., 'London', 'New York')",
+              "required": true,
+              "location": "query"
+            },
+            {
+              "name": "units",
+              "type": "string",
+              "description": "Units: metric (Celsius), imperial (Fahrenheit), or standard (Kelvin)",
+              "required": false,
+              "default": "metric",
+              "location": "query"
+            }
+          ],
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "temperature": {"type": "number"},
+              "feels_like": {"type": "number"},
+              "conditions": {"type": "string"},
+              "humidity": {"type": "integer"},
+              "wind_speed": {"type": "number"},
+              "city": {"type": "string"}
+            }
+          },
+          "tags": ["weather", "current", "conditions", "temperature"],
+          "rateLimit": 60,
           "price": 0.0
         },
         {
-          "name": "get_forecast",
-          "description": "Get weather forecast for the next 5 days",
+          "intent_uid": "openweathermap.org:getForecast:v1",
+          "intent_name": "get_forecast",
+          "description": "Get 5-day weather forecast with 3-hour intervals",
+          "http_method": "GET",
+          "endpoint_path": "/forecast",
+          "input_parameters": [
+            {
+              "name": "q",
+              "type": "string",
+              "description": "City name",
+              "required": true,
+              "location": "query"
+            },
+            {
+              "name": "units",
+              "type": "string",
+              "description": "Units: metric, imperial, or standard",
+              "required": false,
+              "default": "metric",
+              "location": "query"
+            }
+          ],
           "tags": ["weather", "forecast", "prediction"],
-          "rateLimit": 1000,
-          "price": 0.01
+          "rateLimit": 60,
+          "price": 0.0
         },
         {
-          "name": "get_weather_alerts",
+          "intent_uid": "openweathermap.org:getWeatherAlerts:v1",
+          "intent_name": "get_weather_alerts",
           "description": "Get severe weather alerts for a region",
+          "http_method": "GET",
+          "endpoint_path": "/weather",
+          "input_parameters": [
+            {
+              "name": "q",
+              "type": "string",
+              "description": "City name or region",
+              "required": true,
+              "location": "query"
+            }
+          ],
           "tags": ["weather", "alerts", "warnings"],
-          "rateLimit": 500,
+          "rateLimit": 60,
           "price": 0.005
-        }
-      ]
-    },
-    {
-      "name": "Stripe Payment API",
-      "description": "Process payments and manage billing for your applications",
-      "url": "https://api.stripe.com/v1",
-      "intents": [
-        {
-          "name": "create_payment",
-          "description": "Process a one-time payment",
-          "tags": ["payment", "transaction", "charge"],
-          "rateLimit": 100,
-          "price": 0.05
-        },
-        {
-          "name": "create_subscription",
-          "description": "Set up recurring subscription billing",
-          "tags": ["payment", "subscription", "recurring"],
-          "rateLimit": 100,
-          "price": 0.08
-        },
-        {
-          "name": "refund_payment",
-          "description": "Issue a refund for a previous payment",
-          "tags": ["payment", "refund", "cancellation"],
-          "rateLimit": 100,
-          "price": 0.03
-        },
-        {
-          "name": "get_payment_history",
-          "description": "Retrieve payment history for a customer",
-          "tags": ["payment", "history", "transactions"],
-          "rateLimit": 200,
-          "price": 0.01
-        }
-      ]
-    },
-    {
-      "name": "SendGrid Email API",
-      "description": "Send transactional and marketing emails at scale",
-      "url": "https://api.sendgrid.com/v3",
-      "intents": [
-        {
-          "name": "send_email",
-          "description": "Send a single email to one or more recipients",
-          "tags": ["email", "send", "notification"],
-          "rateLimit": 500,
-          "price": 0.001
-        },
-        {
-          "name": "send_template_email",
-          "description": "Send an email using a predefined template",
-          "tags": ["email", "template", "marketing"],
-          "rateLimit": 500,
-          "price": 0.002
-        },
-        {
-          "name": "schedule_email",
-          "description": "Schedule an email to be sent at a future time",
-          "tags": ["email", "schedule", "automation"],
-          "rateLimit": 200,
-          "price": 0.003
-        }
-      ]
-    },
-    {
-      "name": "Google Maps API",
-      "description": "Geocoding, directions, and place information worldwide",
-      "url": "https://maps.googleapis.com/maps/api",
-      "intents": [
-        {
-          "name": "geocode_address",
-          "description": "Convert an address to geographic coordinates",
-          "tags": ["maps", "geocoding", "location"],
-          "rateLimit": 1000,
-          "price": 0.005
-        },
-        {
-          "name": "get_directions",
-          "description": "Get directions between two locations",
-          "tags": ["maps", "directions", "routing"],
-          "rateLimit": 1000,
-          "price": 0.01
-        },
-        {
-          "name": "find_nearby_places",
-          "description": "Find places of interest near a location",
-          "tags": ["maps", "places", "search"],
-          "rateLimit": 500,
-          "price": 0.02
-        },
-        {
-          "name": "get_place_details",
-          "description": "Get detailed information about a specific place",
-          "tags": ["maps", "places", "details"],
-          "rateLimit": 500,
-          "price": 0.015
-        }
-      ]
-    },
-    {
-      "name": "Twilio SMS API",
-      "description": "Send and receive SMS messages programmatically",
-      "url": "https://api.twilio.com/2010-04-01",
-      "intents": [
-        {
-          "name": "send_sms",
-          "description": "Send an SMS message to a phone number",
-          "tags": ["sms", "message", "notification"],
-          "rateLimit": 100,
-          "price": 0.0075
-        },
-        {
-          "name": "send_mms",
-          "description": "Send an MMS message with media content",
-          "tags": ["sms", "mms", "media"],
-          "rateLimit": 100,
-          "price": 0.02
-        },
-        {
-          "name": "get_message_status",
-          "description": "Check the delivery status of a sent message",
-          "tags": ["sms", "status", "tracking"],
-          "rateLimit": 200,
-          "price": 0.001
-        }
-      ]
-    },
-    {
-      "name": "GitHub API",
-      "description": "Interact with GitHub repositories, issues, and pull requests",
-      "url": "https://api.github.com",
-      "intents": [
-        {
-          "name": "create_repository",
-          "description": "Create a new GitHub repository",
-          "tags": ["github", "repository", "create"],
-          "rateLimit": 5000,
-          "price": 0.0
-        },
-        {
-          "name": "create_issue",
-          "description": "Create a new issue in a repository",
-          "tags": ["github", "issue", "bug"],
-          "rateLimit": 5000,
-          "price": 0.0
-        },
-        {
-          "name": "create_pull_request",
-          "description": "Create a new pull request",
-          "tags": ["github", "pull-request", "code-review"],
-          "rateLimit": 5000,
-          "price": 0.0
-        },
-        {
-          "name": "get_repository_info",
-          "description": "Get detailed information about a repository",
-          "tags": ["github", "repository", "info"],
-          "rateLimit": 5000,
-          "price": 0.0
-        },
-        {
-          "name": "list_commits",
-          "description": "List commits in a repository",
-          "tags": ["github", "commits", "history"],
-          "rateLimit": 5000,
-          "price": 0.0
-        }
-      ]
-    },
-    {
-      "name": "Slack API",
-      "description": "Send messages and interact with Slack workspaces",
-      "url": "https://slack.com/api",
-      "intents": [
-        {
-          "name": "send_message",
-          "description": "Send a message to a Slack channel",
-          "tags": ["slack", "message", "notification"],
-          "rateLimit": 100,
-          "price": 0.0
-        },
-        {
-          "name": "create_channel",
-          "description": "Create a new Slack channel",
-          "tags": ["slack", "channel", "create"],
-          "rateLimit": 50,
-          "price": 0.0
-        },
-        {
-          "name": "upload_file",
-          "description": "Upload a file to Slack",
-          "tags": ["slack", "file", "upload"],
-          "rateLimit": 20,
-          "price": 0.0
-        },
-        {
-          "name": "get_user_info",
-          "description": "Get information about a Slack user",
-          "tags": ["slack", "user", "profile"],
-          "rateLimit": 100,
-          "price": 0.0
         }
       ]
     },
     {
       "name": "News API",
-      "description": "Access breaking news and historical articles from news sources",
-      "url": "https://newsapi.org/v2",
+      "description": "Access breaking news and historical articles from thousands of news sources worldwide",
+      "service_url": "https://newsapi.org/v2",
+      "auth_type": "api_key",
+      "auth_query_param": "apiKey",
       "intents": [
         {
-          "name": "get_top_headlines",
+          "intent_uid": "newsapi.org:getTopHeadlines:v1",
+          "intent_name": "get_top_headlines",
           "description": "Get current top headlines from news sources",
+          "http_method": "GET",
+          "endpoint_path": "/top-headlines",
+          "input_parameters": [
+            {
+              "name": "country",
+              "type": "string",
+              "description": "Country code (e.g., 'us', 'gb')",
+              "required": false,
+              "location": "query"
+            },
+            {
+              "name": "category",
+              "type": "string",
+              "description": "Category: business, entertainment, health, science, sports, technology",
+              "required": false,
+              "location": "query"
+            }
+          ],
           "tags": ["news", "headlines", "current"],
           "rateLimit": 1000,
           "price": 0.0
         },
         {
-          "name": "search_articles",
+          "intent_uid": "newsapi.org:searchArticles:v1",
+          "intent_name": "search_articles",
           "description": "Search for articles by keyword or topic",
+          "http_method": "GET",
+          "endpoint_path": "/everything",
+          "input_parameters": [
+            {
+              "name": "q",
+              "type": "string",
+              "description": "Search query",
+              "required": true,
+              "location": "query"
+            },
+            {
+              "name": "from",
+              "type": "string",
+              "description": "Start date (ISO format)",
+              "required": false,
+              "location": "query"
+            },
+            {
+              "name": "sortBy",
+              "type": "string",
+              "description": "Sort by: relevancy, popularity, publishedAt",
+              "required": false,
+              "default": "publishedAt",
+              "location": "query"
+            }
+          ],
           "tags": ["news", "search", "articles"],
           "rateLimit": 1000,
           "price": 0.01
         },
         {
-          "name": "get_sources",
+          "intent_uid": "newsapi.org:getSources:v1",
+          "intent_name": "get_sources",
           "description": "Get available news sources",
+          "http_method": "GET",
+          "endpoint_path": "/sources",
+          "input_parameters": [
+            {
+              "name": "category",
+              "type": "string",
+              "description": "Filter by category",
+              "required": false,
+              "location": "query"
+            },
+            {
+              "name": "language",
+              "type": "string",
+              "description": "Filter by language (e.g., 'en')",
+              "required": false,
+              "location": "query"
+            }
+          ],
           "tags": ["news", "sources", "publishers"],
           "rateLimit": 1000,
           "price": 0.0
@@ -260,35 +334,205 @@
       ]
     },
     {
-      "name": "Spotify API",
-      "description": "Search and control music playback on Spotify",
-      "url": "https://api.spotify.com/v1",
+      "name": "GitHub API",
+      "description": "Interact with GitHub repositories, issues, pull requests, and code management",
+      "service_url": "https://api.github.com",
+      "auth_type": "bearer",
+      "auth_header_name": "Authorization",
       "intents": [
         {
-          "name": "search_tracks",
+          "intent_uid": "github.com:createRepository:v1",
+          "intent_name": "create_repository",
+          "description": "Create a new GitHub repository",
+          "http_method": "POST",
+          "endpoint_path": "/user/repos",
+          "input_parameters": [
+            {
+              "name": "name",
+              "type": "string",
+              "description": "Repository name",
+              "required": true,
+              "location": "body"
+            },
+            {
+              "name": "description",
+              "type": "string",
+              "description": "Repository description",
+              "required": false,
+              "location": "body"
+            },
+            {
+              "name": "private",
+              "type": "boolean",
+              "description": "Make repository private",
+              "required": false,
+              "default": false,
+              "location": "body"
+            }
+          ],
+          "tags": ["github", "repository", "create", "code"],
+          "rateLimit": 5000,
+          "price": 0.0
+        },
+        {
+          "intent_uid": "github.com:createIssue:v1",
+          "intent_name": "create_issue",
+          "description": "Create a new issue in a repository",
+          "http_method": "POST",
+          "endpoint_path": "/repos/{owner}/{repo}/issues",
+          "input_parameters": [
+            {
+              "name": "owner",
+              "type": "string",
+              "description": "Repository owner",
+              "required": true,
+              "location": "path"
+            },
+            {
+              "name": "repo",
+              "type": "string",
+              "description": "Repository name",
+              "required": true,
+              "location": "path"
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "description": "Issue title",
+              "required": true,
+              "location": "body"
+            },
+            {
+              "name": "body",
+              "type": "string",
+              "description": "Issue description",
+              "required": false,
+              "location": "body"
+            }
+          ],
+          "tags": ["github", "issue", "bug", "tracking"],
+          "rateLimit": 5000,
+          "price": 0.0
+        },
+        {
+          "intent_uid": "github.com:getRepositoryInfo:v1",
+          "intent_name": "get_repository_info",
+          "description": "Get detailed information about a repository",
+          "http_method": "GET",
+          "endpoint_path": "/repos/{owner}/{repo}",
+          "input_parameters": [
+            {
+              "name": "owner",
+              "type": "string",
+              "description": "Repository owner",
+              "required": true,
+              "location": "path"
+            },
+            {
+              "name": "repo",
+              "type": "string",
+              "description": "Repository name",
+              "required": true,
+              "location": "path"
+            }
+          ],
+          "tags": ["github", "repository", "info"],
+          "rateLimit": 5000,
+          "price": 0.0
+        }
+      ]
+    },
+    {
+      "name": "Spotify API",
+      "description": "Search and control music playback on Spotify, manage playlists and discover music",
+      "service_url": "https://api.spotify.com/v1",
+      "auth_type": "bearer",
+      "auth_header_name": "Authorization",
+      "intents": [
+        {
+          "intent_uid": "spotify.com:searchTracks:v1",
+          "intent_name": "search_tracks",
           "description": "Search for music tracks",
-          "tags": ["spotify", "search", "music"],
+          "http_method": "GET",
+          "endpoint_path": "/search",
+          "input_parameters": [
+            {
+              "name": "q",
+              "type": "string",
+              "description": "Search query",
+              "required": true,
+              "location": "query"
+            },
+            {
+              "name": "type",
+              "type": "string",
+              "description": "Search type (track, artist, album)",
+              "required": true,
+              "default": "track",
+              "location": "query"
+            },
+            {
+              "name": "limit",
+              "type": "integer",
+              "description": "Number of results",
+              "required": false,
+              "default": 20,
+              "location": "query"
+            }
+          ],
+          "tags": ["spotify", "search", "music", "tracks"],
           "rateLimit": 180,
           "price": 0.0
         },
         {
-          "name": "get_track_info",
+          "intent_uid": "spotify.com:getTrackInfo:v1",
+          "intent_name": "get_track_info",
           "description": "Get detailed information about a track",
-          "tags": ["spotify", "track", "metadata"],
+          "http_method": "GET",
+          "endpoint_path": "/tracks/{id}",
+          "input_parameters": [
+            {
+              "name": "id",
+              "type": "string",
+              "description": "Track ID",
+              "required": true,
+              "location": "path"
+            }
+          ],
+          "tags": ["spotify", "track", "metadata", "info"],
           "rateLimit": 180,
           "price": 0.0
         },
         {
-          "name": "create_playlist",
+          "intent_uid": "spotify.com:createPlaylist:v1",
+          "intent_name": "create_playlist",
           "description": "Create a new playlist",
+          "http_method": "POST",
+          "endpoint_path": "/users/{user_id}/playlists",
+          "input_parameters": [
+            {
+              "name": "user_id",
+              "type": "string",
+              "description": "User ID",
+              "required": true,
+              "location": "path"
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "description": "Playlist name",
+              "required": true,
+              "location": "body"
+            },
+            {
+              "name": "description",
+              "type": "string",
+              "description": "Playlist description",
+              "required": false,
+              "location": "body"
+            }
+          ],
           "tags": ["spotify", "playlist", "create"],
-          "rateLimit": 180,
-          "price": 0.0
-        },
-        {
-          "name": "add_to_playlist",
-          "description": "Add tracks to a playlist",
-          "tags": ["spotify", "playlist", "modify"],
           "rateLimit": 180,
           "price": 0.0
         }
@@ -296,36 +540,72 @@
     },
     {
       "name": "OpenAI API",
-      "description": "Access GPT models for text generation and analysis",
-      "url": "https://api.openai.com/v1",
+      "description": "Access GPT models for text generation, analysis, translation, and AI-powered tasks",
+      "service_url": "https://api.openai.com/v1",
+      "auth_type": "bearer",
+      "auth_header_name": "Authorization",
       "intents": [
         {
-          "name": "generate_text",
+          "intent_uid": "openai.com:generateText:v1",
+          "intent_name": "generate_text",
           "description": "Generate text using GPT models",
-          "tags": ["ai", "generation", "text"],
+          "http_method": "POST",
+          "endpoint_path": "/chat/completions",
+          "input_parameters": [
+            {
+              "name": "model",
+              "type": "string",
+              "description": "Model to use (e.g., 'gpt-4', 'gpt-3.5-turbo')",
+              "required": true,
+              "default": "gpt-3.5-turbo",
+              "location": "body"
+            },
+            {
+              "name": "messages",
+              "type": "array",
+              "description": "Array of message objects",
+              "required": true,
+              "location": "body"
+            },
+            {
+              "name": "max_tokens",
+              "type": "integer",
+              "description": "Maximum tokens to generate",
+              "required": false,
+              "default": 150,
+              "location": "body"
+            }
+          ],
+          "tags": ["ai", "generation", "text", "gpt"],
           "rateLimit": 3500,
           "price": 0.002
         },
         {
-          "name": "analyze_sentiment",
-          "description": "Analyze the sentiment of text",
-          "tags": ["ai", "sentiment", "analysis"],
-          "rateLimit": 3500,
-          "price": 0.001
-        },
-        {
-          "name": "summarize_text",
+          "intent_uid": "openai.com:summarizeText:v1",
+          "intent_name": "summarize_text",
           "description": "Create a summary of long text",
-          "tags": ["ai", "summary", "text"],
+          "http_method": "POST",
+          "endpoint_path": "/chat/completions",
+          "input_parameters": [
+            {
+              "name": "text",
+              "type": "string",
+              "description": "Text to summarize",
+              "required": true,
+              "location": "body"
+            },
+            {
+              "name": "max_length",
+              "type": "integer",
+              "description": "Maximum summary length",
+              "required": false,
+              "default": 100,
+              "location": "body"
+            }
+          ],
+          "tags": ["ai", "summary", "text", "nlp"],
           "rateLimit": 3500,
           "price": 0.0015
-        },
-        {
-          "name": "translate_text",
-          "description": "Translate text between languages",
-          "tags": ["ai", "translation", "language"],
-          "rateLimit": 3500,
-          "price": 0.001
         }
       ]
     }

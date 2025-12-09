@@ -1,223 +1,160 @@
 """
-Database Seeding Script
-This script loads mock data from seed_data.json and populates the MongoDB database
-using the existing DAL layer for proper validation and relationship handling.
+Unified Database Seeding Script - FIXED for UIM Format
+
+Seeds both services and intents from a single JSON file.
+Works with UIM-compliant structure (intent_name, http_method, etc.)
 
 Usage:
-    python DAL/seed_database.py  (from API directory)
-    or
-    python seed_database.py (from DAL directory)
+    python seed_database.py
 """
-
-import json
 import sys
+import json
 from pathlib import Path
-from typing import Dict, List, Any
+from pymongo import MongoClient
+from bson import ObjectId
+from datetime import datetime
 
-# Add parent directory to path so we can import from DAL and logicLayer
+# Add parent directory to path for imports
 current_dir = Path(__file__).parent
 parent_dir = current_dir.parent
 sys.path.insert(0, str(parent_dir))
 
-# Import your DAL and Logic layers
-from DAL.serviceDAL import ServiceDAL
-from DAL.intentDAL import IntentDAL
-from logicLayer.Logic.serviceLogic import ServiceLogic
-from logicLayer.Logic.intentLogic import IntentLogic
+from DBconnection import GetDBConnection
+
+# Get database connection
+db = GetDBConnection()
+services_collection = db["services"]
+intents_collection = db["intents"]
 
 
+def clear_database():
+    """Clear all services and intents from database"""
+    print("\n⚠️  Clearing database...")
 
-class DatabaseSeeder:
-    """Handles seeding the database with mock data"""
+    services_deleted = services_collection.delete_many({})
+    intents_deleted = intents_collection.delete_many({})
 
-    def __init__(self, service_logic: ServiceLogic, intent_logic: IntentLogic):
-        self.service_logic = service_logic
-        self.intent_logic = intent_logic
-        self.stats = {
-            "services_created": 0,
-            "services_failed": 0,
-            "intents_created": 0,
-            "intents_failed": 0,
-            "errors": []
-        }
-
-    def load_seed_data(self, file_path: str) -> Dict[str, Any]:
-        """Load seed data from JSON file"""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            print(f"✓ Successfully loaded seed data from {file_path}")
-            return data
-        except FileNotFoundError:
-            print(f"✗ Error: Seed data file not found at {file_path}")
-            sys.exit(1)
-        except json.JSONDecodeError as e:
-            print(f"✗ Error: Invalid JSON in seed file: {e}")
-            sys.exit(1)
-
-    def seed_service_with_intents(self, service_data: Dict[str, Any]) -> bool:
-        """
-        Seed a single service along with its intents.
-        Returns True if successful, False otherwise.
-        """
-        service_name = service_data.get("name", "Unknown")
-        intents_data = service_data.pop("intents", [])
-
-        try:
-            print(f"\n📦 Processing service: {service_name}")
-
-            # Step 1: Create all intents first
-            intent_ids = []
-            for intent_data in intents_data:
-                try:
-                    # Call addIntent with correct parameters
-                    intent_id = self.intent_logic.addIntent(
-                        intentName=intent_data["name"],
-                        intentDescription=intent_data["description"],
-                        intentTags=intent_data["tags"],
-                        rateLimit=intent_data["rateLimit"],
-                        price=intent_data["price"]
-                    )
-
-                    if intent_id:
-                        intent_ids.append(intent_id)
-                        self.stats["intents_created"] += 1
-                        print(f"  ✓ Created intent: {intent_data['name']} (ID: {intent_id})")
-                    else:
-                        self.stats["intents_failed"] += 1
-                        print(f"  ✗ Failed to create intent: {intent_data['name']}")
-
-                except Exception as e:
-                    self.stats["intents_failed"] += 1
-                    error_msg = f"Intent '{intent_data.get('name')}' in service '{service_name}': {str(e)}"
-                    self.stats["errors"].append(error_msg)
-                    print(f"  ✗ Error creating intent: {intent_data.get('name')} - {e}")
-
-            # Step 2: Create service with intent IDs
-            try:
-                service_id = self.service_logic.addService(
-                    serviceName=service_data["name"],
-                    serviceDescription=service_data["description"],
-                    service_URL=service_data.get("url"),
-                    intent_ids=intent_ids
-                )
-
-                if service_id:
-                    self.stats["services_created"] += 1
-                    print(f"✓ Service created: {service_name} (ID: {service_id})")
-                    print(f"  └─ Linked {len(intent_ids)} intents")
-                    return True
-                else:
-                    self.stats["services_failed"] += 1
-                    error_msg = f"Failed to create service: {service_name}"
-                    self.stats["errors"].append(error_msg)
-                    print(f"✗ Failed to create service: {service_name}")
-
-                    # Rollback: delete created intents
-                    print(f"  🔄 Rolling back {len(intent_ids)} intents...")
-                    for intent_id in intent_ids:
-                        try:
-                            self.intent_logic.deleteIntent(intent_id)
-                        except Exception as e:
-                            print(f"  ⚠️  Failed to rollback intent {intent_id}: {e}")
-
-                    return False
-
-            except Exception as e:
-                self.stats["services_failed"] += 1
-                error_msg = f"Service '{service_name}': {str(e)}"
-                self.stats["errors"].append(error_msg)
-                print(f"✗ Error creating service {service_name}: {e}")
-
-                # Rollback: delete created intents
-                print(f"  🔄 Rolling back {len(intent_ids)} intents...")
-                for intent_id in intent_ids:
-                    try:
-                        self.intent_logic.deleteIntent(intent_id)
-                    except Exception as e:
-                        print(f"  ⚠️  Failed to rollback intent {intent_id}: {e}")
-
-                return False
-
-        except Exception as e:
-            self.stats["services_failed"] += 1
-            error_msg = f"Service '{service_name}': {str(e)}"
-            self.stats["errors"].append(error_msg)
-            print(f"✗ Error processing service {service_name}: {e}")
-            return False
-
-    def seed_all(self, seed_data: Dict[str, Any]) -> None:
-        """Seed all services and their intents"""
-        services = seed_data.get("services", [])
-
-        if not services:
-            print("⚠️  No services found in seed data")
-            return
-
-        print(f"\n🌱 Starting to seed {len(services)} services...\n")
-        print("=" * 70)
-
-        for service_data in services:
-            self.seed_service_with_intents(service_data)
-
-        print("\n" + "=" * 70)
-        self.print_summary()
-
-    def print_summary(self) -> None:
-        """Print seeding summary"""
-        print("\n📊 Seeding Summary:")
-        print(f"  Services created: {self.stats['services_created']}")
-        print(f"  Services failed:  {self.stats['services_failed']}")
-        print(f"  Intents created:  {self.stats['intents_created']}")
-        print(f"  Intents failed:   {self.stats['intents_failed']}")
-
-        if self.stats["errors"]:
-            print(f"\n❌ Errors encountered ({len(self.stats['errors'])}):")
-            for i, error in enumerate(self.stats["errors"][:10], 1):  # Show first 10 errors
-                print(f"  {i}. {error}")
-            if len(self.stats["errors"]) > 10:
-                print(f"  ... and {len(self.stats['errors']) - 10} more errors")
-        else:
-            print("\n✅ All data seeded successfully!")
+    print(f"   Deleted {services_deleted.deleted_count} services")
+    print(f"   Deleted {intents_deleted.deleted_count} intents\n")
 
 
-def main():
-    """Main function to run the seeding script"""
+def seed_database(seed_file: str = "seed_data.json"):
+    """
+    Seed the database with services and intents from JSON file.
+
+    Args:
+        seed_file: Path to JSON file containing service definitions
+    """
     print("=" * 70)
-    print("🌱 DATABASE SEEDING SCRIPT")
+    print("🌱 DVerse Service Catalogue - Database Seeding")
     print("=" * 70)
-
-    # Initialize DAL layers
-    try:
-        intent_dal = IntentDAL()
-        service_dal = ServiceDAL()
-    except Exception as e:
-        print(f"✗ Error initializing DAL layers: {e}")
-        print("Make sure your MongoDB connection is properly configured.")
-        sys.exit(1)
-
-    # Initialize Logic layers with DAL instances
-    try:
-        intent_logic = IntentLogic(intent_dal)
-        service_logic = ServiceLogic(service_dal)
-    except Exception as e:
-        print(f"✗ Error initializing Logic layers: {e}")
-        sys.exit(1)
-
-    # Create seeder instance
-    seeder = DatabaseSeeder(service_logic, intent_logic)
 
     # Load seed data
-    seed_file = "arxiv_service_seed.json"
-    seed_data = seeder.load_seed_data(seed_file)
+    seed_path = Path(__file__).parent / seed_file
 
-    # Seed the database
-    seeder.seed_all(seed_data)
+    if not seed_path.exists():
+        print(f"❌ Error: Seed file not found: {seed_path}")
+        return
 
-    print("\n" + "=" * 70)
-    print("🏁 Seeding complete!")
-    print("=" * 70)
+    print(f"\n📂 Loading seed data from: {seed_file}")
+
+    try:
+        with open(seed_path, 'r', encoding='utf-8') as f:
+            seed_data = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"❌ Error: Invalid JSON in seed file: {e}")
+        return
+
+    services_data = seed_data.get("services", [])
+
+    if not services_data:
+        print("❌ Error: No services found in seed file")
+        return
+
+    print(f"   Found {len(services_data)} services to seed\n")
+
+    # Process each service
+    total_intents = 0
+    failed_services = 0
+    failed_intents = 0
+
+    for idx, service_data in enumerate(services_data, 1):
+        service_name = service_data.get("name", f"Service {idx}")
+        print(f"\n{'─' * 70}")
+        print(f"📦 Processing Service {idx}/{len(services_data)}: {service_name}")
+        print(f"{'─' * 70}")
+
+        # Extract intents from service
+        intents_data = service_data.pop("intents", [])
+
+        print(f"   ✓ Service: {service_name}")
+        print(f"   ✓ URL: {service_data.get('service_url', 'N/A')}")
+        print(f"   ✓ Intents: {len(intents_data)}")
+
+        # Insert intents first and collect their IDs
+        intent_ids = []
+
+        for intent_data in intents_data:
+            intent_name = intent_data.get("intent_name", "unknown")
+
+            # Add timestamp
+            intent_data["created_at"] = datetime.utcnow()
+            intent_data["updated_at"] = datetime.utcnow()
+
+            try:
+                # Insert intent directly (bypass validation for now)
+                result = intents_collection.insert_one(intent_data)
+                intent_ids.append(str(result.inserted_id))
+
+                print(f"      └─ Intent: {intent_name}")
+                print(f"         • UID: {intent_data.get('intent_uid', 'N/A')}")
+                print(f"         • Method: {intent_data.get('http_method', 'POST')} {intent_data.get('endpoint_path', '/')}")
+                print(f"         • Parameters: {len(intent_data.get('input_parameters', []))}")
+
+                total_intents += 1
+            except Exception as e:
+                failed_intents += 1
+                print(f"      ✗ Failed to create intent {intent_name}: {e}")
+
+        # Add intent_ids to service
+        service_data["intent_ids"] = intent_ids
+
+        # Add timestamps
+        service_data["created_at"] = datetime.utcnow()
+        service_data["updated_at"] = datetime.utcnow()
+
+        try:
+            # Insert service directly
+            service_result = services_collection.insert_one(service_data)
+            print(f"\n   ✅ Service inserted with ID: {service_result.inserted_id}")
+        except Exception as e:
+            failed_services += 1
+            print(f"\n   ❌ Failed to insert service: {e}")
+
+    # Summary
+    print(f"\n{'=' * 70}")
+    print("✨ Seeding Complete!")
+    print(f"{'=' * 70}")
+    print(f"   📦 Services seeded: {len(services_data) - failed_services}")
+    print(f"   ❌ Services failed: {failed_services}")
+    print(f"   🎯 Intents seeded:  {total_intents}")
+    print(f"   ❌ Intents failed:  {failed_intents}")
+    print(f"{'=' * 70}\n")
+
+    # Verify
+    print("🔍 Verification:")
+    print(f"   Services in DB: {services_collection.count_documents({})}")
+    print(f"   Intents in DB:  {intents_collection.count_documents({})}")
+    print()
 
 
 if __name__ == "__main__":
-    main()
+    # Ask user if they want to clear existing data
+    print("\n⚠️  This will clear existing services and intents!")
+    response = input("Continue? (y/n): ")
+
+    if response.lower() == 'y':
+        clear_database()
+        seed_database("seed_data.json")
+    else:
+        print("❌ Seeding cancelled")

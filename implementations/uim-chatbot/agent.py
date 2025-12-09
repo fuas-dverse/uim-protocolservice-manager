@@ -1,53 +1,37 @@
 """
-Pydantic AI agent for the chatbot - SIMPLIFIED VERSION
+DVerse Chatbot Agent - SIMPLIFIED VERSION
 
-This agent:
-1. Receives natural language queries from users
-2. Discovers relevant services via HTTP API
-3. Invokes discovered services via ServiceInvoker
-4. Returns plain text results (NO structured output validation)
+Clearer prompts, better error handling, faster responses.
 """
-from pydantic_ai import Agent, RunContext
-from typing import Dict, Any
-from dataclasses import dataclass
-from loguru import logger
 import httpx
+from pydantic_ai import Agent, RunContext
+from dataclasses import dataclass
+from typing import Dict, Any, List
+from loguru import logger
 
-from service_invoker import ServiceInvoker
+# Import the generic service invoker
+from service_invoker import GenericServiceInvoker
 
 
 @dataclass
 class AgentDependencies:
-    """
-    Dependencies injected into the agent at runtime.
-    """
-    service_invoker: ServiceInvoker
-    user_id: str
+    """Dependencies for the agent"""
+    service_invoker: GenericServiceInvoker
     query_context: Dict[str, Any]
 
 
-# Initialize the Pydantic AI agent with Ollama
-# Using simple string format compatible with pydantic-ai 0.0.14
+# Initialize the Pydantic AI agent with SIMPLER prompt
 chatbot_agent = Agent(
-    'ollama:qwen2.5',  # Simple string format - works in all versions
+    'ollama:llama3.2',
     deps_type=AgentDependencies,
-    # NO result_type - just plain text!
-    system_prompt="""You are a helpful research assistant chatbot.
+    system_prompt="""You are a helpful assistant that can discover and use services.
 
-IMPORTANT: When users ask for research papers on ANY topic:
-1. Use discover_services with query "research papers" or "papers" to find arXiv
-2. Then use invoke_service with the user's TOPIC (e.g., "multi-agent systems") as the search query
+When a user asks for something:
+1. Call discover_services to find the right service
+2. Call invoke_service with the service you found
+3. Give the user a friendly response with the results
 
-Example:
-User: "Find recent papers about multi-agent systems"
-Step 1: discover_services(query="research papers") → finds arXiv
-Step 2: invoke_service(service_name="arXiv API", intent_name="search_papers", parameters={"query": "multi-agent systems"})
-
-The discover_services tool finds WHAT SERVICE to use (arXiv for papers).
-The invoke_service tool searches arXiv FOR the topic the user wants.
-
-Always search for the SERVICE TYPE first, not the topic!
-"""
+Be concise and helpful."""
 )
 
 
@@ -55,114 +39,125 @@ Always search for the SERVICE TYPE first, not the topic!
 async def discover_services(
     ctx: RunContext[AgentDependencies],
     query: str
-) -> Dict[str, Any]:
+) -> List[Dict[str, Any]]:
     """
-    Query the Backend API to discover services in the catalogue.
+    Find services in the catalogue.
 
     Args:
-        query: Natural language query (e.g., "research papers", "academic articles")
+        query: What type of service to find (e.g., "papers", "weather", "news")
 
     Returns:
-        Services and intents found in the catalogue
+        List of services with full metadata
     """
-    logger.info(f"Agent tool called: discover_services(query='{query}')")
+    logger.info(f"🔍 discover_services called: query='{query}'")
 
     try:
-        # Call merged Backend API at /query endpoint (HTTP, not NATS)
-        api_url = "http://localhost:8000/query/"
-
-        payload = {
-            "query": query,
-            "agent_id": f"chatbot-{ctx.deps.user_id}",
-            "context": ctx.deps.query_context,
-            "use_ai": False  # Use keyword mode
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(api_url, json=payload, timeout=10.0)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:8000/query/",  # Added trailing slash
+                json={
+                    "query": query,
+                    "use_ai": False
+                },
+                follow_redirects=True  # Follow redirects if needed
+            )
             response.raise_for_status()
+
             data = response.json()
+            services = data.get("services_found", [])
 
-        logger.info(f"API returned {len(data.get('services_found', []))} services")
+            logger.info(f"✅ Found {len(services)} services")
 
-        return {
-            "services": data.get("services_found", []),
-            "intents": data.get("intents_found", []),
-            "api_response": data.get("response", "")
-        }
+            # Return services with full metadata
+            return services
 
+    except httpx.TimeoutException:
+        logger.error("⏱️ Backend API timeout")
+        return []
+    except httpx.HTTPError as e:
+        logger.error(f"❌ HTTP error: {e}")
+        return []
     except Exception as e:
-        logger.error(f"Error discovering services via API: {e}")
-        return {
-            "services": [],
-            "intents": [],
-            "error": str(e)
-        }
+        logger.error(f"❌ Error: {e}", exc_info=True)
+        return []
 
 
 @chatbot_agent.tool
 async def invoke_service(
     ctx: RunContext[AgentDependencies],
     service_name: str,
-    service_url: str,
     intent_name: str,
     parameters: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
-    Invoke an external service to get real data.
+    Call a service to get data.
 
     Args:
-        service_name: Name of the service (e.g., "arXiv API")
-        service_url: Base URL of the service
-        intent_name: Intent to invoke (e.g., "search_papers")
-        parameters: Parameters for the intent (e.g., {"query": "multi-agent", "max_results": 5})
+        service_name: Name of service (from discover_services)
+        intent_name: What action to perform (e.g., "search_papers", "get_current_weather")
+        parameters: Parameters needed (e.g., {"query": "AI", "max_results": 5})
 
     Returns:
-        Data returned from the service
+        Service response data
     """
-    logger.info(f"Agent tool called: invoke_service({service_name}, {intent_name})")
+    logger.info(f"🚀 invoke_service called: {service_name}.{intent_name}")
+    logger.info(f"   Parameters: {parameters}")
 
     try:
-        invoker = ctx.deps.service_invoker
+        # First discover the service to get metadata
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:8000/query/",  # Added trailing slash
+                json={"query": service_name, "use_ai": False},
+                follow_redirects=True
+            )
+            response.raise_for_status()
 
-        result = await invoker.invoke(
-            service_name=service_name,
-            service_url=service_url,
-            intent_name=intent_name,
-            parameters=parameters
-        )
+            data = response.json()
+            services = data.get("services_found", [])
 
-        logger.info(f"Service invocation successful")
+            if not services:
+                logger.error(f"❌ Service '{service_name}' not found")
+                return {"error": f"Service '{service_name}' not found"}
 
-        return {
-            "success": True,
-            "data": result
-        }
+            service = services[0]
 
+            # Find the intent
+            intents = service.get("intents", [])
+            intent_metadata = None
+
+            for intent in intents:
+                if intent.get("intent_name") == intent_name:
+                    intent_metadata = intent
+                    break
+
+            if not intent_metadata:
+                logger.error(f"❌ Intent '{intent_name}' not found")
+                return {"error": f"Intent '{intent_name}' not found in service"}
+
+            # Call the generic invoker
+            invoker = ctx.deps.service_invoker
+
+            service_metadata = {
+                "name": service.get("name"),
+                "service_url": service.get("service_url"),
+                "auth_type": service.get("auth_type", "none"),
+                "auth_header_name": service.get("auth_header_name"),
+                "auth_query_param": service.get("auth_query_param")
+            }
+
+            result = await invoker.invoke(
+                service_metadata=service_metadata,
+                intent_metadata=intent_metadata,
+                parameters=parameters
+            )
+
+            logger.info(f"✅ Service invocation successful")
+            return result
+
+    except httpx.TimeoutException:
+        logger.error("⏱️ Service invocation timeout")
+        return {"error": "Service timeout"}
     except Exception as e:
-        logger.error(f"Error invoking service: {e}")
-        return {
-            "success": False,
-            "error": str(e)
-        }
-
-
-@chatbot_agent.system_prompt
-async def add_contextual_instructions(ctx: RunContext[AgentDependencies]) -> str:
-    """
-    Add dynamic instructions based on the user's context.
-    """
-    user_id = ctx.deps.user_id
-    context = ctx.deps.query_context
-
-    instructions = f"\nYou are currently helping user: {user_id}\n"
-
-    if context.get("previous_queries"):
-        prev = context["previous_queries"]
-        instructions += f"\nUser's recent queries: {prev}\n"
-
-    if context.get("preferred_services"):
-        prefs = context["preferred_services"]
-        instructions += f"\nUser prefers these services: {', '.join(prefs)}\n"
-
-    return instructions
+        logger.error(f"❌ Error invoking service: {e}", exc_info=True)
+        return {"error": str(e)}

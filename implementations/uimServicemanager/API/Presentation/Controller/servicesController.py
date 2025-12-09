@@ -1,54 +1,51 @@
-﻿import re
+﻿"""
+Services Controller - Updated for UIM-compliant services
+
+Handles CRUD operations for services with full metadata.
+"""
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from typing import List
+from typing import Optional
 
 from logicLayer.Logic.serviceLogic import ServiceLogic
 from DAL.serviceDAL import ServiceDAL
 from Presentation.Viewmodel.serviceViewmodel import (
-    ServiceViewModel,
     ServiceCreateRequest,
     ServiceUpdateRequest,
-    ServiceWithIntentsRequest
+    ServiceResponse,
+    ServiceListResponse
 )
 
 router = APIRouter()
 
 
-# Dependency injection for service logic
 def get_service_logic() -> ServiceLogic:
-    dal = ServiceDAL()
-    logic = ServiceLogic(dal)
-    return logic
+    """Dependency injection for service logic"""
+    service_dal = ServiceDAL()
+    return ServiceLogic(service_dal)
 
 
-def validate_text_input(text: str, field_name: str) -> None:
-    """Validate text input to prevent injection attacks"""
-    regex = r"^[A-Za-z0-9 .,:;!?\-_()]+$"
-    if not re.match(regex, text):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid {field_name}: contains disallowed characters"
-        )
-
-
-# GET all services OR search by name using query parameter
 @router.get(
     "/",
-    response_model=List[ServiceViewModel],
-    summary="Get all services or search by name",
-    description="Retrieve all services or filter by name using ?name=searchterm query parameter (case-insensitive partial match)"
+    response_model=ServiceListResponse,
+    summary="Get all services",
+    description="Retrieve all services with full intent metadata"
 )
-def get_services(
-        name: str = Query(None, description="Search services by name (partial match, case-insensitive)"),
-        logic: ServiceLogic = Depends(get_service_logic)
+def get_all_services(
+    logic: ServiceLogic = Depends(get_service_logic),
+    tags: Optional[str] = Query(None, description="Filter by tags (comma-separated)")
 ):
+    """Get all services, optionally filtered by tags"""
     try:
-        if name:
-            # Search by name if provided
-            return logic.getServicesByName(name)
+        if tags:
+            tag_list = [t.strip() for t in tags.split(",")]
+            services = logic.searchServicesByTags(tag_list)
         else:
-            # Return all services
-            return logic.getServices()
+            services = logic.getAllServices()
+
+        return ServiceListResponse(
+            services=services,
+            total=len(services)
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -56,17 +53,17 @@ def get_services(
         )
 
 
-# GET service by ID
 @router.get(
     "/{service_id}",
-    response_model=ServiceViewModel,
+    response_model=ServiceResponse,
     summary="Get service by ID",
-    description="Retrieve a specific service by its unique identifier"
+    description="Retrieve a specific service with full intent metadata"
 )
-def get_service_by_id(
-        service_id: str,
-        logic: ServiceLogic = Depends(get_service_logic)
+def get_service(
+    service_id: str,
+    logic: ServiceLogic = Depends(get_service_logic)
 ):
+    """Get a specific service by ID"""
     try:
         service = logic.getServiceByID(service_id)
         if not service:
@@ -84,37 +81,25 @@ def get_service_by_id(
         )
 
 
-# POST a new service
 @router.post(
     "/",
-    response_model=dict,
+    response_model=ServiceResponse,
+    status_code=status.HTTP_201_CREATED,
     summary="Create a new service",
-    description="Register a new service in the catalog",
-    status_code=status.HTTP_201_CREATED
+    description="""
+    Create a new service with UIM-compliant structure.
+    
+    Note: Intents must be created first, then reference their IDs here.
+    """
 )
 def create_service(
-        service: ServiceCreateRequest,
-        logic: ServiceLogic = Depends(get_service_logic)
+    service: ServiceCreateRequest,
+    logic: ServiceLogic = Depends(get_service_logic)
 ):
+    """Create a new service"""
     try:
-        # Validate inputs
-        validate_text_input(service.name, "name")
-        validate_text_input(service.description, "description")
-
-        # Create service
-        service_id = logic.addService(
-            service.name,
-            service.description,
-            service.service_URL,
-            service.intent_ids
-        )
-
-        return {
-            "message": "Service created successfully",
-            "service_id": service_id
-        }
-    except HTTPException:
-        raise
+        created_service = logic.createService(service.model_dump())
+        return created_service
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -127,96 +112,37 @@ def create_service(
         )
 
 
-# POST a new service with intents
-@router.post(
-    "/with-intents",
-    response_model=dict,
-    summary="Create a service with its intents",
-    description="Register a new service and create its intents in a single request",
-    status_code=status.HTTP_201_CREATED
-)
-def create_service_with_intents(
-        request: ServiceWithIntentsRequest,
-        logic: ServiceLogic = Depends(get_service_logic)
-):
-    try:
-        # Validate service inputs
-        validate_text_input(request.name, "name")
-        validate_text_input(request.description, "description")
-
-        # Validate each intent's text fields
-        for idx, intent in enumerate(request.intents):
-            if "name" in intent:
-                validate_text_input(intent["name"], f"intent[{idx}].name")
-            if "description" in intent:
-                validate_text_input(intent["description"], f"intent[{idx}].description")
-            if "tags" in intent and isinstance(intent["tags"], list):
-                for tag in intent["tags"]:
-                    validate_text_input(tag, f"intent[{idx}].tag")
-
-        # Create service with intents
-        service_id, intent_ids = logic.addServiceWithIntents(
-            request.name,
-            request.description,
-            request.service_URL,
-            request.intents
-        )
-
-        return {
-            "message": "Service and intents created successfully",
-            "service_id": service_id,
-            "intent_ids": intent_ids
-        }
-    except HTTPException:
-        raise
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create service with intents: {str(e)}"
-        )
-
-
-# PUT update service
 @router.put(
     "/{service_id}",
-    response_model=dict,
+    response_model=ServiceResponse,
     summary="Update a service",
-    description="Update an existing service's information"
+    description="Update an existing service (partial updates allowed)"
 )
 def update_service(
-        service_id: str,
-        service: ServiceUpdateRequest,
-        logic: ServiceLogic = Depends(get_service_logic)
+    service_id: str,
+    service: ServiceUpdateRequest,
+    logic: ServiceLogic = Depends(get_service_logic)
 ):
+    """Update an existing service"""
     try:
-        # Validate inputs
-        validate_text_input(service.name, "name")
-        validate_text_input(service.description, "description")
+        # Only include fields that were actually provided
+        update_data = service.model_dump(exclude_unset=True)
 
-        # Update service
-        success = logic.updateService(
-            service.name,
-            service.description,
-            service.service_URL,
-            service.intent_ids,
-            service_id
-        )
+        if not update_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No fields provided for update"
+            )
 
-        if not success:
+        updated_service = logic.updateServiceNew(service_id, update_data)
+
+        if not updated_service:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Service with ID '{service_id}' not found"
             )
 
-        return {
-            "message": "Service updated successfully",
-            "service_id": service_id
-        }
+        return updated_service
     except HTTPException:
         raise
     except ValueError as e:
@@ -231,17 +157,17 @@ def update_service(
         )
 
 
-# DELETE a service
 @router.delete(
     "/{service_id}",
-    response_model=dict,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a service",
-    description="Remove a service from the catalog"
+    description="Delete a service (intents are NOT deleted)"
 )
 def delete_service(
-        service_id: str,
-        logic: ServiceLogic = Depends(get_service_logic)
+    service_id: str,
+    logic: ServiceLogic = Depends(get_service_logic)
 ):
+    """Delete a service"""
     try:
         success = logic.deleteService(service_id)
 
@@ -251,14 +177,35 @@ def delete_service(
                 detail=f"Service with ID '{service_id}' not found"
             )
 
-        return {
-            "message": "Service deleted successfully",
-            "service_id": service_id
-        }
+        return None  # 204 No Content
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete service: {str(e)}"
+        )
+
+
+@router.get(
+    "/search/by-name",
+    response_model=ServiceListResponse,
+    summary="Search services by name",
+    description="Search for services using case-insensitive name matching"
+)
+def search_services_by_name(
+    query: str = Query(..., min_length=1, description="Search query"),
+    logic: ServiceLogic = Depends(get_service_logic)
+):
+    """Search services by name"""
+    try:
+        services = logic.searchServicesByName(query)
+        return ServiceListResponse(
+            services=services,
+            total=len(services)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to search services: {str(e)}"
         )

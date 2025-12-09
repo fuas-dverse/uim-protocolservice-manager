@@ -1,42 +1,66 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
-from bson import ObjectId
+"""
+Intent Validation Model - UIM Protocol Compliant (Pydantic v2)
 
-
-class PyObjectId(ObjectId):
-    """Custom type for MongoDB ObjectId validation"""
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type, handler):
-        from pydantic_core import core_schema
-        return core_schema.union_schema([
-            core_schema.is_instance_schema(ObjectId),
-            core_schema.chain_schema([
-                core_schema.str_schema(),
-                core_schema.no_info_plain_validator_function(cls.validate),
-            ])
-        ])
-
-    @classmethod
-    def validate(cls, v):
-        if isinstance(v, ObjectId):
-            return v
-        if isinstance(v, str) and ObjectId.is_valid(v):
-            return ObjectId(v)
-        raise ValueError("Invalid ObjectId")
+Stored separately from services for flexibility.
+"""
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional, List, Dict, Any, Literal
+from datetime import datetime
 
 
 class IntentDocument(BaseModel):
-    """MongoDB document model for intents"""
-    id: Optional[PyObjectId] = Field(default=None, alias="_id")
-    name: str = Field(..., min_length=2, max_length=50)
-    description: str = Field(..., min_length=1, max_length=500)
-    tags: List[str] = Field(default_factory=list)
-    rateLimit: int = Field(..., ge=0)
-    price: float = Field(..., ge=0)
+    """
+    Intent document for MongoDB storage.
 
-    model_config = {
-        "populate_by_name": True,
-        "arbitrary_types_allowed": True,
-        "json_encoders": {ObjectId: str}
-    }
+    Matches IntentMetadata from serviceValidationModel but stored as separate document.
+    """
+    model_config = ConfigDict(json_schema_extra={
+        "example": {
+            "intent_uid": "openweather.com:getCurrentWeather:v1",
+            "intent_name": "get_current_weather",
+            "description": "Get current weather for a city",
+            "http_method": "GET",
+            "endpoint_path": "/weather",
+            "input_parameters": [
+                {
+                    "name": "q",
+                    "type": "string",
+                    "description": "City name",
+                    "required": True,
+                    "location": "query"
+                },
+                {
+                    "name": "units",
+                    "type": "string",
+                    "description": "Temperature units (metric/imperial)",
+                    "required": False,
+                    "default": "metric",
+                    "location": "query"
+                }
+            ],
+            "tags": ["weather", "current"],
+            "rateLimit": 60,
+            "price": 0.0
+        }
+    })
+
+    intent_uid: str = Field(..., description="Unique identifier (format: service:intent:version)")
+    intent_name: str = Field(..., description="Human-readable intent name")
+    description: Optional[str] = Field(None, description="What this intent does")
+
+    # API Invocation Details
+    http_method: Literal["GET", "POST", "PUT", "DELETE", "PATCH"] = Field("POST", description="HTTP method to use")
+    endpoint_path: str = Field(..., description="Path to append to service_url")
+
+    # Parameters - stored as list of dicts for MongoDB
+    input_parameters: List[Dict[str, Any]] = Field(default_factory=list, description="Input parameters schema")
+    output_schema: Optional[Dict[str, Any]] = Field(None, description="Expected response schema")
+
+    # Metadata
+    tags: List[str] = Field(default_factory=list, description="Searchable tags")
+    rateLimit: Optional[int] = Field(None, description="Rate limit (requests per minute)")
+    price: float = Field(0.0, description="Cost per request")
+
+    # Timestamps
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

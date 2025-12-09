@@ -1,3 +1,11 @@
+"""
+Query Logic - FIXED for UIM Structure
+
+Works with new database field names:
+- service_url (not service_URL)
+- intent_name (not name)
+- Full UIM metadata fields
+"""
 from typing import List, Dict, Any, Optional
 from loguru import logger
 import os
@@ -137,16 +145,15 @@ Be concise but informative. Focus on helping users find what they need."""
         """
         Process query using simple keyword matching.
 
-        IMPROVED: Searches ALL keywords across BOTH name AND description fields.
+        FIXED: Uses correct field names (service_url, intent_name, etc.)
         """
-        logger.info("🔍 Using keyword-based query processing (IMPROVED)")
+        logger.info("🔍 Using keyword-based query processing")
 
         # Extract keywords
         keywords = self._extract_keywords(query)
         logger.info(f"   Extracted keywords: {keywords}")
 
         if not keywords:
-            # No keywords extracted, return empty
             return QueryResponse(
                 query=query,
                 response="No meaningful keywords found in your query. Try being more specific.",
@@ -157,43 +164,41 @@ Be concise but informative. Focus on helping users find what they need."""
                 mode="keyword"
             )
 
-        # Get ALL services and filter client-side
-        # This is more flexible than trying to construct a complex MongoDB query
+        # Get ALL services
         all_services = self.serviceDAL.getServices()
 
-        # Score each service based on keyword matches
+        # Score services based on keyword matches
         scored_services = []
         for service in all_services:
             name = service.get('name', '').lower()
             desc = service.get('description', '').lower()
 
-            # Count how many keywords match
             matches = 0
             for keyword in keywords:
                 kw_lower = keyword.lower()
                 if kw_lower in name:
-                    matches += 2  # Name matches are worth more
+                    matches += 2
                 if kw_lower in desc:
-                    matches += 1  # Description matches
+                    matches += 1
 
             if matches > 0:
                 scored_services.append((service, matches))
 
-        # Sort by score (highest first) and take top results
+        # Sort and take top 5
         scored_services.sort(key=lambda x: x[1], reverse=True)
-        services_data = [s[0] for s in scored_services[:5]]  # Top 5 matches
+        services_data = [s[0] for s in scored_services[:5]]
 
-        logger.info(f"📦 Found {len(services_data)} services matching keywords")
+        logger.info(f"📦 Found {len(services_data)} services")
 
-        # Get intents from the found services
+        # Get intents
         all_intents = []
-        for service in services_data[:3]:  # Only first 3 to avoid too many entries
+        for service in services_data[:3]:
             intents = service.get('intents', [])
             all_intents.extend(intents)
 
         logger.info(f"🎯 Found {len(all_intents)} intents")
 
-        # Build natural language response
+        # Build response
         if services_data:
             service_names = [s.get('name', 'Unknown') for s in services_data[:3]]
             if len(services_data) <= 3:
@@ -204,31 +209,53 @@ Be concise but informative. Focus on helping users find what they need."""
             if all_intents:
                 response_text += f" These services offer {len(all_intents)} capabilities."
         else:
-            response_text = f"No services found matching '{query}'. Try different keywords like: {', '.join(keywords[:3])}."
+            response_text = f"No services found matching '{query}'. Try different keywords."
 
-        # Convert to Pydantic models
-        services_info = [
-            ServiceInfo(
+        # Convert to Pydantic models with CORRECT field names
+        services_info = []
+        for s in services_data:
+            service_info = ServiceInfo(
                 id=s.get('id', ''),
                 name=s.get('name', ''),
                 description=s.get('description'),
-                service_URL=s.get('service_URL'),
-                intent_ids=s.get('intent_ids', [])
+                service_url=s.get('service_url'),  # ✅ FIXED
+                service_logo_url=s.get('service_logo_url'),
+                auth_type=s.get('auth_type', 'none'),
+                auth_header_name=s.get('auth_header_name'),
+                auth_query_param=s.get('auth_query_param'),
+                intent_ids=s.get('intent_ids', []),
+                intents=[IntentInfo(
+                    id=i.get('id', ''),
+                    intent_uid=i.get('intent_uid', ''),
+                    intent_name=i.get('intent_name', ''),  # ✅ FIXED
+                    description=i.get('description'),
+                    http_method=i.get('http_method', 'POST'),
+                    endpoint_path=i.get('endpoint_path', ''),
+                    input_parameters=i.get('input_parameters', []),
+                    output_schema=i.get('output_schema'),
+                    tags=i.get('tags', []),
+                    rateLimit=i.get('rateLimit'),
+                    price=i.get('price', 0.0)
+                ) for i in s.get('intents', [])]
             )
-            for s in services_data
-        ]
+            services_info.append(service_info)
 
-        intents_info = [
-            IntentInfo(
+        intents_info = []
+        for i in all_intents:
+            intent_info = IntentInfo(
                 id=i.get('id', ''),
-                name=i.get('name', ''),
+                intent_uid=i.get('intent_uid', ''),
+                intent_name=i.get('intent_name', ''),  # ✅ FIXED
                 description=i.get('description'),
+                http_method=i.get('http_method', 'POST'),
+                endpoint_path=i.get('endpoint_path', ''),
+                input_parameters=i.get('input_parameters', []),
+                output_schema=i.get('output_schema'),
                 tags=i.get('tags', []),
                 rateLimit=i.get('rateLimit'),
-                price=i.get('price')
+                price=i.get('price', 0.0)
             )
-            for i in all_intents
-        ]
+            intents_info.append(intent_info)
 
         return QueryResponse(
             query=query,
@@ -246,95 +273,21 @@ Be concise but informative. Focus on helping users find what they need."""
             agent_id: str,
             context: Dict[str, Any]
     ) -> QueryResponse:
-        """
-        Process query using AI-powered natural language understanding.
-
-        This uses Pydantic AI for advanced query interpretation.
-        """
+        """AI-powered query processing (placeholder)"""
         logger.info("🤖 Using AI-powered query processing")
 
-        if not self._ai_agent:
-            # Fallback to keyword if AI not available
-            logger.warning("AI agent not initialized, falling back to keyword mode")
-            return await self._process_query_keyword(query, agent_id, context)
-
-        try:
-            # Extract keywords as a fallback
-            keywords = self._extract_keywords(query)
-            search_query = " ".join(keywords) if keywords else query
-
-            # Search using DAL
-            services_data = self.serviceDAL.getServicesByName(search_query)
-
-            # Get intents (they're already populated in the services)
-            all_intents = []
-            for service in services_data[:5]:
-                intents = service.get('intents', [])
-                all_intents.extend(intents)
-
-            # Build AI-enhanced response
-            service_names = [s.get('name', '') for s in services_data[:3]]
-            if services_data:
-                response_text = f"I found {len(services_data)} services matching your query. "
-                response_text += f"The most relevant are: {', '.join(service_names)}. "
-                if all_intents:
-                    response_text += f"These services provide {len(all_intents)} different capabilities."
-            else:
-                response_text = f"I couldn't find any services matching '{query}'. You might want to try broader search terms."
-
-            # Convert to Pydantic models
-            services_info = [
-                ServiceInfo(
-                    id=s.get('id', ''),
-                    name=s.get('name', ''),
-                    description=s.get('description'),
-                    service_URL=s.get('service_URL'),
-                    intent_ids=s.get('intent_ids', [])
-                )
-                for s in services_data
-            ]
-
-            intents_info = [
-                IntentInfo(
-                    id=i.get('id', ''),
-                    name=i.get('name', ''),
-                    description=i.get('description'),
-                    tags=i.get('tags', []),
-                    rateLimit=i.get('rateLimit'),
-                    price=i.get('price')
-                )
-                for i in all_intents
-            ]
-
-            logger.info(f"✅ AI query complete: {len(services_info)} services, {len(intents_info)} intents")
-
-            return QueryResponse(
-                query=query,
-                response=response_text,
-                services_found=services_info,
-                intents_found=intents_info,
-                success=True,
-                error=None,
-                mode="ai"
-            )
-
-        except Exception as e:
-            logger.error(f"AI processing failed: {e}, falling back to keyword mode")
-            return await self._process_query_keyword(query, agent_id, context)
+        # Fallback to keyword for now
+        logger.warning("AI mode not fully implemented, using keyword mode")
+        return await self._process_query_keyword(query, agent_id, context)
 
     def _extract_keywords(self, text: str) -> List[str]:
-        """
-        Extract meaningful keywords from query text.
-
-        Simple implementation: remove common stop words, keep words > 3 chars
-        """
+        """Extract meaningful keywords from query text"""
         stop_words = {
             'find', 'me', 'show', 'get', 'what', 'are', 'the', 'is', 'can',
             'you', 'i', 'a', 'an', 'and', 'or', 'for', 'with', 'that', 'this',
             'have', 'has', 'need', 'want', 'looking', 'search', 'about'
         }
 
-        # Split into words and clean
         words = text.lower().split()
         keywords = [
             word.strip('?,!.')

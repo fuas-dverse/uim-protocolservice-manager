@@ -1,58 +1,77 @@
+"""
+Query Viewmodel - Updated to return full service metadata
+
+The chatbot needs complete metadata to invoke services dynamically.
+"""
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 
-class ServiceInfo(BaseModel):
-    """Information about a service from the catalogue"""
-    id: str
-    name: str
-    description: Optional[str] = None
-    service_URL: Optional[str] = None
-    intent_ids: List[str] = Field(default_factory=list)
-
-
 class IntentInfo(BaseModel):
-    """Information about an intent/capability of a service"""
+    """
+    Intent information with FULL invocation metadata.
+
+    This is what the chatbot needs to call the service!
+    """
     id: str
-    name: str
+    intent_uid: str
+    intent_name: str
     description: Optional[str] = None
+
+    # API Invocation details
+    http_method: str = "POST"
+    endpoint_path: str
+    input_parameters: List[Dict[str, Any]] = Field(default_factory=list)
+    output_schema: Optional[Dict[str, Any]] = None
+
+    # Metadata
     tags: List[str] = Field(default_factory=list)
     rateLimit: Optional[int] = None
-    price: Optional[float] = None
+    price: float = 0.0
+
+
+class ServiceInfo(BaseModel):
+    """
+    Service information with FULL metadata for invocation.
+
+    Includes auth details the chatbot needs.
+    """
+    id: str
+    name: str
+    description: Optional[str] = None
+
+    # Service URLs
+    service_url: str
+    service_logo_url: Optional[str] = None
+
+    # Authentication (chatbot needs this!)
+    auth_type: Optional[str] = "none"
+    auth_header_name: Optional[str] = None
+    auth_query_param: Optional[str] = None
+
+    # Intents with full metadata
+    intent_ids: List[str] = Field(default_factory=list)
+    intents: List[IntentInfo] = Field(default_factory=list)
+
+    # UIM endpoints
+    uim_api_discovery: Optional[str] = None
+    uim_api_execute: Optional[str] = None
 
 
 class QueryRequest(BaseModel):
-    """
-    Request model for natural language queries.
-    
-    Used for HTTP POST /query endpoint.
-    """
-    query: str = Field(
-        ...,
-        description="Natural language query",
-        min_length=1,
-        examples=["Find me weather services", "Show services that process payments"]
-    )
-    agent_id: Optional[str] = Field(
-        default="http-client",
-        description="Optional identifier for the requesting agent/client"
-    )
-    context: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Optional context information (e.g., previous queries, user preferences)"
-    )
-    use_ai: bool = Field(
-        default=False,
-        description="If True, use AI-powered query processing (requires OPENAI_API_KEY). If False, use keyword matching."
-    )
-    
+    """Request model for natural language query"""
+    query: str = Field(..., min_length=1, max_length=500, description="Natural language query")
+    agent_id: Optional[str] = Field("http-client", description="ID of requesting agent")
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Optional context")
+    use_ai: bool = Field(False, description="Use AI-powered query processing (requires OPENAI_API_KEY)")
+
     class Config:
         json_schema_extra = {
             "example": {
-                "query": "Find me weather services with forecasting",
-                "agent_id": "web-app-001",
-                "context": {"location": "Europe"},
+                "query": "Find weather services",
+                "agent_id": "chatbot-agent-1",
+                "context": {},
                 "use_ai": False
             }
         }
@@ -60,52 +79,53 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     """
-    Response model for natural language queries.
-    
-    Returned by HTTP POST /query endpoint.
+    Response model for query endpoint.
+
+    Returns FULL service metadata so chatbot can invoke directly!
     """
-    query: str = Field(..., description="Original query from the request")
-    response: str = Field(..., description="Natural language response explaining the results")
-    services_found: List[ServiceInfo] = Field(
-        default_factory=list,
-        description="Services matching the query"
-    )
-    intents_found: List[IntentInfo] = Field(
-        default_factory=list,
-        description="Intents/capabilities found"
-    )
-    success: bool = Field(True, description="Whether the query was successful")
-    error: Optional[str] = Field(None, description="Error message if query failed")
-    mode: str = Field(..., description="Query mode used: 'keyword' or 'ai'")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Response timestamp")
-    
+    query: str
+    response: str = Field(..., description="Natural language response")
+
+    # Full service metadata (not just names!)
+    services_found: List[ServiceInfo] = Field(default_factory=list)
+    intents_found: List[IntentInfo] = Field(default_factory=list)
+
+    success: bool
+    error: Optional[str] = None
+    mode: str = Field("keyword", description="Processing mode: 'keyword' or 'ai'")
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
     class Config:
         json_schema_extra = {
             "example": {
-                "query": "Find me weather services",
-                "response": "Found 2 weather services. Top matches: OpenWeather API, WeatherStack API.",
-                "services_found": [
-                    {
-                        "id": "507f1f77bcf86cd799439011",
-                        "name": "OpenWeather API",
-                        "description": "Global weather data service",
-                        "service_URL": "https://api.openweathermap.org",
-                        "intent_ids": ["507f1f77bcf86cd799439012"]
-                    }
-                ],
-                "intents_found": [
-                    {
-                        "id": "507f1f77bcf86cd799439012",
-                        "name": "get_forecast",
-                        "description": "Get weather forecast for a location",
-                        "tags": ["weather", "forecast"],
-                        "rateLimit": 1000,
-                        "price": 0.0
-                    }
-                ],
+                "query": "weather in London",
+                "response": "Found 1 service: OpenWeather API",
+                "services_found": [{
+                    "id": "507f1f77bcf86cd799439011",
+                    "name": "OpenWeather API",
+                    "description": "Weather data and forecasts",
+                    "service_url": "https://api.openweathermap.org/data/2.5",
+                    "auth_type": "api_key",
+                    "auth_query_param": "appid",
+                    "intents": [{
+                        "id": "intent_123",
+                        "intent_uid": "openweather:getCurrentWeather:v1",
+                        "intent_name": "get_current_weather",
+                        "http_method": "GET",
+                        "endpoint_path": "/weather",
+                        "input_parameters": [
+                            {
+                                "name": "q",
+                                "type": "string",
+                                "required": True,
+                                "location": "query"
+                            }
+                        ],
+                        "tags": ["weather", "current"]
+                    }]
+                }],
                 "success": True,
                 "error": None,
-                "mode": "keyword",
-                "timestamp": "2025-12-04T10:30:00Z"
+                "mode": "keyword"
             }
         }
