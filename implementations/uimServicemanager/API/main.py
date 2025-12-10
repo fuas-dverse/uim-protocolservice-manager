@@ -10,6 +10,7 @@ from Presentation.Controller import servicesController
 from Presentation.Controller import intentsController
 from Presentation.Controller import uimProtocolController
 from Presentation.Controller import queryController
+from Presentation.Controller import discoveryController
 
 # NATS broker (will be initialized in lifespan)
 nats_broker = None
@@ -93,6 +94,7 @@ app.include_router(servicesController.router, prefix="/services", tags=["Service
 app.include_router(intentsController.router, prefix="/intents", tags=["Intents"])
 app.include_router(uimProtocolController.router, prefix="/uimprotocol", tags=["UIM Protocol"])
 app.include_router(queryController.router, prefix="/query", tags=["Query"])
+app.include_router(discoveryController.router, prefix="/discovery", tags=["Discovery"])
 
 
 @app.get("/")
