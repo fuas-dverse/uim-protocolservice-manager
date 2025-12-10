@@ -1,16 +1,3 @@
-"""
-Chatbot Agent Service
-
-A chatbot that:
-1. Discovers services via Backend API /query endpoint
-2. Invokes discovered services to get real data
-3. Provides HTTP interface for web queries
-
-Architecture:
-    User → HTTP → Chatbot → Backend API /query → Catalogue
-                     ↓
-                 Generic Service Invoker → External APIs (arXiv, OpenWeather, etc.)
-"""
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException

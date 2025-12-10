@@ -1,8 +1,3 @@
-"""
-Pydantic models for chatbot messages (Pydantic v2 compatible).
-
-These define the structure of messages exchanged between users and the chatbot.
-"""
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Dict, Any, List
 from datetime import datetime

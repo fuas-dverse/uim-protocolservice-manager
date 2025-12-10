@@ -1,19 +1,7 @@
-"""
-Generic Service Invoker - Works with ANY REST API
-
-Reads service/intent metadata from the catalogue and dynamically constructs
-HTTP requests. No hardcoding needed for new services!
-
-Special handling for:
-- XML responses (arXiv)
-- Authentication (API keys)
-- Parameter location (query, path, body, header)
-"""
 import httpx
 import xmltodict
-import json
 import os
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from loguru import logger
 
 
@@ -35,7 +23,7 @@ class GenericServiceInvoker:
 
     async def close(self):
         """Close the HTTP client"""
-        await self.client.close()
+        await self.client.aclose()
 
     async def invoke(
         self,

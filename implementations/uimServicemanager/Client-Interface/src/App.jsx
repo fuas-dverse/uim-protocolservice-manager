@@ -17,7 +17,11 @@ function App() {
       const response = await fetch('http://localhost:8000/services');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      setServices(data);
+
+      // ✅ FIXED: Handle new API response format
+      // API now returns { services: [...], total: N }
+      const servicesArray = data.services || data;
+      setServices(servicesArray);
       setServicesError(null);
     } catch (err) {
       console.error('Failed to load services:', err);
@@ -34,7 +38,11 @@ function App() {
       const response = await fetch('http://localhost:8000/intents');
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      setIntents(data);
+
+      // ✅ FIXED: Handle new API response format
+      // API now returns { intents: [...], total: N }
+      const intentsArray = data.intents || data;
+      setIntents(intentsArray);
       setIntentsError(null);
     } catch (err) {
       console.error('Failed to load intents:', err);
@@ -60,7 +68,7 @@ function App() {
     if (!query) return services();
     return services().filter(s =>
       s.name.toLowerCase().includes(query) ||
-      s.description.toLowerCase().includes(query)
+      (s.description && s.description.toLowerCase().includes(query))
     );
   };
 
@@ -69,8 +77,8 @@ function App() {
     const query = searchQuery().toLowerCase();
     if (!query) return intents();
     return intents().filter(i =>
-      i.name.toLowerCase().includes(query) ||
-      i.description.toLowerCase().includes(query)
+      (i.intent_name && i.intent_name.toLowerCase().includes(query)) ||
+      (i.description && i.description.toLowerCase().includes(query))
     );
   };
 
@@ -96,7 +104,7 @@ function App() {
           class="bg-white p-8 rounded-lg shadow-lg text-center hover:bg-green-50 transition cursor-pointer border-2 border-transparent hover:border-green-300"
         >
           <h2 class="text-2xl font-semibold text-green-600 mb-2">Intents</h2>
-          <p class="text-gray-600">View all available intents for the AI agents.</p>
+          <p class="text-gray-600">Explore all available intents and capabilities.</p>
         </button>
       </div>
     </div>
@@ -130,30 +138,32 @@ function App() {
       </Show>
 
       <Show when={servicesError()}>
-        <div class="text-center py-8">
-          <p class="text-red-500 mb-2">{servicesError()}</p>
-          <button
-            onClick={fetchServices}
-            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Retry
-          </button>
+        <div class="max-w-2xl mx-auto bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          {servicesError()}
         </div>
       </Show>
 
       <Show when={!servicesLoading() && !servicesError()}>
-        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-w-7xl mx-auto">
           <For each={filteredServices()}>
             {(service) => (
               <div class="bg-white p-5 border border-gray-200 rounded-lg shadow-md hover:shadow-lg transition">
                 <h2 class="font-bold text-xl text-blue-700 mb-2">{service.name}</h2>
-                <p class="text-gray-600 mb-3">{service.description}</p>
+                <p class="text-gray-600 mb-3">{service.description || 'No description'}</p>
                 <div class="text-sm text-gray-500">
                   <span class="font-semibold">URL:</span>
-                  <a href={service.service_URL} target="_blank" class="text-blue-500 hover:underline ml-1">
-                    {service.service_URL}
+                  {/* ✅ FIXED: Changed service_URL to service_url */}
+                  <a href={service.service_url} target="_blank" class="text-blue-500 hover:underline ml-1 break-all">
+                    {service.service_url}
                   </a>
                 </div>
+                <Show when={service.intents && service.intents.length > 0}>
+                  <div class="mt-3 pt-3 border-t border-gray-200">
+                    <p class="text-sm text-gray-600">
+                      <span class="font-semibold">Intents:</span> {service.intents.length}
+                    </p>
+                  </div>
+                </Show>
               </div>
             )}
           </For>
@@ -194,47 +204,43 @@ function App() {
       </Show>
 
       <Show when={intentsError()}>
-        <div class="text-center py-8">
-          <p class="text-red-500 mb-2">{intentsError()}</p>
-          <button
-            onClick={fetchIntents}
-            class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-          >
-            Retry
-          </button>
+        <div class="max-w-2xl mx-auto bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          {intentsError()}
         </div>
       </Show>
 
       <Show when={!intentsLoading() && !intentsError()}>
-        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-w-7xl mx-auto">
           <For each={filteredIntents()}>
             {(intent) => (
               <div class="bg-white p-5 border border-gray-200 rounded-lg shadow-md hover:shadow-lg transition">
-                <h2 class="font-bold text-xl text-green-700 mb-2">{intent.name}</h2>
-                <p class="text-gray-600 mb-3">{intent.description}</p>
-
+                {/* ✅ FIXED: Changed intent.name to intent.intent_name */}
+                <h2 class="font-bold text-xl text-green-700 mb-2">{intent.intent_name}</h2>
+                <p class="text-gray-600 mb-3">{intent.description || 'No description'}</p>
                 <Show when={intent.tags && intent.tags.length > 0}>
-                  <div class="mb-3">
-                    <span class="text-sm font-semibold text-gray-700">Tags:</span>
-                    <div class="flex flex-wrap gap-1 mt-1">
-                      <For each={intent.tags}>
-                        {(tag) => (
-                          <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                            {tag}
-                          </span>
-                        )}
-                      </For>
-                    </div>
+                  <div class="flex flex-wrap gap-1 mb-2">
+                    <For each={intent.tags}>
+                      {(tag) => (
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                          {tag}
+                        </span>
+                      )}
+                    </For>
                   </div>
                 </Show>
-
-                <div class="text-sm text-gray-600 space-y-1">
-                  <div>
-                    <span class="font-semibold">Rate Limit:</span> {intent.rateLimit || 'N/A'}
-                  </div>
-                  <div>
-                    <span class="font-semibold">Price:</span> {intent.price === 0 ? 'Free' : `$${intent.price}`}
-                  </div>
+                <div class="text-sm text-gray-500 space-y-1">
+                  <Show when={intent.http_method}>
+                    <p><span class="font-semibold">Method:</span> {intent.http_method}</p>
+                  </Show>
+                  <Show when={intent.endpoint_path}>
+                    <p><span class="font-semibold">Path:</span> {intent.endpoint_path}</p>
+                  </Show>
+                  <Show when={intent.rateLimit}>
+                    <p><span class="font-semibold">Rate Limit:</span> {intent.rateLimit}/min</p>
+                  </Show>
+                  <Show when={intent.price !== undefined}>
+                    <p><span class="font-semibold">Price:</span> ${intent.price}</p>
+                  </Show>
                 </div>
               </div>
             )}
@@ -249,15 +255,13 @@ function App() {
   );
 
   return (
-    <div class="min-h-screen bg-gray-50">
+    <div class="bg-gray-50 min-h-screen font-sans">
       <Show when={activeTab() === 'home'}>
         <HomePage />
       </Show>
-
       <Show when={activeTab() === 'services'}>
         <ServicesPage />
       </Show>
-
       <Show when={activeTab() === 'intents'}>
         <IntentsPage />
       </Show>

@@ -1,5 +1,5 @@
 ﻿from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 
 class IintentDAL(ABC):
@@ -20,16 +20,30 @@ class IintentDAL(ABC):
         pass
 
     @abstractmethod
-    def addIntent(self, intentName: str, intentDescription: str,
-                  intentTags: List[str], rateLimit: int, price: float) -> str:
-        """Add a new intent and return its ID"""
+    def addIntent(self, intent_data: Dict[str, Any]) -> str:
+        """
+        Add a new intent and return its ID
+
+        Args:
+            intent_data: Dictionary with intent_uid, intent_name, http_method, etc.
+
+        Returns:
+            String ID of created intent
+        """
         pass
 
     @abstractmethod
-    def updateIntent(self, intentName: str, intentDescription: str,
-                     intentTags: List[str], rateLimit: int, price: float,
-                     intent_id: str) -> bool:
-        """Update an intent and return success status"""
+    def updateIntent(self, intent_id: str, intent_data: Dict[str, Any]) -> bool:
+        """
+        Update an intent and return success status
+
+        Args:
+            intent_id: MongoDB ObjectId as string
+            intent_data: Dictionary with fields to update
+
+        Returns:
+            True if successful, False otherwise
+        """
         pass
 
     @abstractmethod

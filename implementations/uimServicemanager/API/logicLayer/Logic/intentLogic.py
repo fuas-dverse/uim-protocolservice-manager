@@ -1,6 +1,6 @@
 ﻿from typing import List, Optional
 from logicLayer.Interface.IintentDAL import IintentDAL
-from Presentation.Viewmodel.intentViewmodel import IntentViewModel
+from Presentation.Viewmodel.intentViewmodel import IntentViewModel, IntentCreateRequest, IntentUpdateRequest
 
 
 class IntentLogic:
@@ -26,18 +26,39 @@ class IntentLogic:
         intents_data = self.intentDAL.getIntentsByTag(tag)
         return [IntentViewModel(**intent) for intent in intents_data]
 
-    def addIntent(self, intentName: str, intentDescription: str,
-                  intentTags: List[str], rateLimit: int, price: float) -> str:
-        """Add a new intent and return the created ID"""
-        return self.intentDAL.addIntent(intentName, intentDescription,
-                                        intentTags, rateLimit, price)
+    def addIntent(self, intent_request: IntentCreateRequest) -> str:
+        """
+        Add a new intent and return the created ID
 
-    def updateIntent(self, intentName: str, intentDescription: str,
-                     intentTags: List[str], rateLimit: int, price: float,
-                     intent_id: str) -> bool:
-        """Update an intent and return success status"""
-        return self.intentDAL.updateIntent(intentName, intentDescription,
-                                           intentTags, rateLimit, price, intent_id)
+        Args:
+            intent_request: IntentCreateRequest with UIM-compliant fields
+
+        Returns:
+            String ID of created intent
+        """
+        # Convert Pydantic model to dict
+        intent_data = intent_request.model_dump(exclude_none=True)
+        return self.intentDAL.addIntent(intent_data)
+
+    def updateIntent(self, intent_id: str, intent_request: IntentUpdateRequest) -> bool:
+        """
+        Update an intent and return success status
+
+        Args:
+            intent_id: MongoDB ObjectId as string
+            intent_request: IntentUpdateRequest with fields to update
+
+        Returns:
+            True if successful, False otherwise
+        """
+        # Convert Pydantic model to dict, exclude None values
+        intent_data = intent_request.model_dump(exclude_none=True)
+
+        # Only update if there are fields to update
+        if not intent_data:
+            return False
+
+        return self.intentDAL.updateIntent(intent_id, intent_data)
 
     def deleteIntent(self, intent_id: str) -> bool:
         """Delete an intent and return success status"""

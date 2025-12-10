@@ -193,6 +193,7 @@ implementations/Testing-env/mongodb-config/log/
 implementations/Testing-env
 
 implementations/uimServicemanager/Client-Interface/node_modules
+implementations/uim-chatbot/Client-interface/node_modules
 
 implementations/uimServicemanager/API/DAL/seed_data.json
 implementations/uimServicemanager/API/DAL/seed_database.py
@@ -203,4 +204,6 @@ implementations\uimServicemanager\caddy_data\caddy\certificates\local\localhost\
 
 implementations\uimServicemanager\caddy_data\caddy\pki\authorities\local\intermediate.crt
 implementations\uimServicemanager\caddy_data\caddy\pki\authorities\local\intermediate.key
+
+
 

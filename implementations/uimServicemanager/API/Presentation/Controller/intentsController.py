@@ -22,7 +22,8 @@ def get_intents_logic() -> IntentLogic:
 
 def validate_text_input(text: str, field_name: str) -> None:
     """Validate text input to prevent injection attacks"""
-    regex = r"^[A-Za-z0-9 .,:;!?\-_()]+$"
+    # Allow more characters for UIM format (colons for intent_uid, underscores for intent_name)
+    regex = r"^[A-Za-z0-9 .,:;!?\-_()/@]+$"
     if not re.match(regex, text):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -88,7 +89,7 @@ def get_intent_by_id(
     "/",
     response_model=dict,
     summary="Create a new intent",
-    description="Register a new intent in the catalog",
+    description="Register a new intent in the catalog with UIM-compliant structure",
     status_code=status.HTTP_201_CREATED
 )
 def create_intent(
@@ -97,21 +98,17 @@ def create_intent(
 ):
     try:
         # Validate inputs
-        validate_text_input(intent.name, "name")
-        validate_text_input(intent.description, "description")
+        validate_text_input(intent.intent_uid, "intent_uid")
+        validate_text_input(intent.intent_name, "intent_name")
+        if intent.description:
+            validate_text_input(intent.description, "description")
 
         # Validate tags
         for tag in intent.tags:
             validate_text_input(tag, "tag")
 
         # Create intent
-        intent_id = logic.addIntent(
-            intent.name,
-            intent.description,
-            intent.tags,
-            intent.rateLimit,
-            intent.price
-        )
+        intent_id = logic.addIntent(intent)
 
         return {
             "message": "Intent created successfully",
@@ -150,26 +147,22 @@ def create_bulk_intents(
         for idx, intent in enumerate(intents):
             try:
                 # Validate inputs
-                validate_text_input(intent.name, "name")
-                validate_text_input(intent.description, "description")
+                validate_text_input(intent.intent_uid, "intent_uid")
+                validate_text_input(intent.intent_name, "intent_name")
+                if intent.description:
+                    validate_text_input(intent.description, "description")
 
                 for tag in intent.tags:
                     validate_text_input(tag, "tag")
 
                 # Create intent
-                intent_id = logic.addIntent(
-                    intent.name,
-                    intent.description,
-                    intent.tags,
-                    intent.rateLimit,
-                    intent.price
-                )
+                intent_id = logic.addIntent(intent)
                 created_ids.append(intent_id)
 
             except Exception as e:
                 errors.append({
                     "index": idx,
-                    "name": intent.name,
+                    "intent_name": intent.intent_name,
                     "error": str(e)
                 })
 
@@ -199,22 +192,20 @@ def update_intent(
         logic: IntentLogic = Depends(get_intents_logic)
 ):
     try:
-        # Validate inputs
-        validate_text_input(intent.name, "name")
-        validate_text_input(intent.description, "description")
+        # Validate inputs if provided
+        if intent.intent_uid:
+            validate_text_input(intent.intent_uid, "intent_uid")
+        if intent.intent_name:
+            validate_text_input(intent.intent_name, "intent_name")
+        if intent.description:
+            validate_text_input(intent.description, "description")
 
-        for tag in intent.tags:
-            validate_text_input(tag, "tag")
+        if intent.tags:
+            for tag in intent.tags:
+                validate_text_input(tag, "tag")
 
         # Update intent
-        success = logic.updateIntent(
-            intent.name,
-            intent.description,
-            intent.tags,
-            intent.rateLimit,
-            intent.price,
-            intent_id
-        )
+        success = logic.updateIntent(intent_id, intent)
 
         if not success:
             raise HTTPException(
@@ -222,10 +213,8 @@ def update_intent(
                 detail=f"Intent with ID '{intent_id}' not found"
             )
 
-        return {
-            "message": "Intent updated successfully",
-            "intent_id": intent_id
-        }
+        return {"message": "Intent updated successfully"}
+
     except HTTPException:
         raise
     except ValueError as e:
@@ -240,7 +229,7 @@ def update_intent(
         )
 
 
-# DELETE an intent
+# DELETE intent
 @router.delete(
     "/{intent_id}",
     response_model=dict,
@@ -260,10 +249,8 @@ def delete_intent(
                 detail=f"Intent with ID '{intent_id}' not found"
             )
 
-        return {
-            "message": "Intent deleted successfully",
-            "intent_id": intent_id
-        }
+        return {"message": "Intent deleted successfully"}
+
     except HTTPException:
         raise
     except Exception as e:

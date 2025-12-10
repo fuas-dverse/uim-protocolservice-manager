@@ -1,5 +1,6 @@
 ﻿from bson import ObjectId
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+from datetime import datetime
 from .DBconnection import GetDBConnection
 from pydantic import ValidationError
 from logicLayer.validationModels.intentValidationModel import IntentDocument
@@ -36,24 +37,27 @@ class IntentDAL(IintentDAL):
     def getIntentsByTag(self, tag: str) -> List[dict]:
         """Retrieve intents that contain the specified tag"""
         intents_list = []
-        # Search for tag in the tags array (tags are strings, not ObjectIds)
         for intent in intents_collection.find({"tags": tag}):
             intents_list.append(self._document_to_dict(intent))
         return intents_list
 
-    def addIntent(self, intentName: str, intentDescription: str,
-                  intentTags: List[str], rateLimit: int, price: float) -> str:
-        """Add a new intent to the database"""
+    def addIntent(self, intent_data: Dict[str, Any]) -> str:
+        """
+        Add a new intent to the database using UIM-compliant format
+
+        Args:
+            intent_data: Dictionary with intent_uid, intent_name, http_method, etc.
+
+        Returns:
+            String ID of created intent
+        """
         try:
-            data = {
-                "name": intentName,
-                "description": intentDescription,
-                "tags": intentTags,
-                "rateLimit": rateLimit,
-                "price": price
-            }
+            # Add timestamps
+            intent_data["created_at"] = datetime.utcnow()
+            intent_data["updated_at"] = datetime.utcnow()
+
             # Validate data using Pydantic model
-            intent_doc = IntentDocument(**data)
+            intent_doc = IntentDocument(**intent_data)
 
             # Insert into MongoDB
             result = intents_collection.insert_one(
@@ -66,34 +70,37 @@ class IntentDAL(IintentDAL):
         except Exception as e:
             raise Exception(f"Database error: {str(e)}")
 
-    def updateIntent(self, intentName: str, intentDescription: str,
-                     intentTags: List[str], rateLimit: int, price: float,
-                     intent_id: str) -> bool:
-        """Update an existing intent"""
+    def updateIntent(self, intent_id: str, intent_data: Dict[str, Any]) -> bool:
+        """
+        Update an existing intent
+
+        Args:
+            intent_id: MongoDB ObjectId as string
+            intent_data: Dictionary with fields to update
+
+        Returns:
+            True if successful, False otherwise
+        """
         if not ObjectId.is_valid(intent_id):
             raise ValueError("Invalid intent ID format")
 
         try:
-            data = {
-                "name": intentName,
-                "description": intentDescription,
-                "tags": intentTags,
-                "rateLimit": rateLimit,
-                "price": price
-            }
-            # Validate data using Pydantic model
-            intent_doc = IntentDocument(**data)
+            # Update timestamp
+            intent_data["updated_at"] = datetime.utcnow()
 
-            # Update in MongoDB (exclude _id from update)
+            # Remove any fields that shouldn't be updated
+            intent_data.pop("id", None)
+            intent_data.pop("_id", None)
+            intent_data.pop("created_at", None)
+
+            # Update in MongoDB
             result = intents_collection.update_one(
                 {"_id": ObjectId(intent_id)},
-                {"$set": intent_doc.model_dump(by_alias=True, exclude={"id"})}
+                {"$set": intent_data}
             )
 
             return result.matched_count > 0
 
-        except ValidationError as e:
-            raise ValueError(f"Validation error: {str(e)}")
         except Exception as e:
             raise Exception(f"Database error: {str(e)}")
 

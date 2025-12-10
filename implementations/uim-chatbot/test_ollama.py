@@ -1,6 +1,3 @@
-"""
-Test Ollama directly to see if it's working
-"""
 import httpx
 import asyncio
 from loguru import logger

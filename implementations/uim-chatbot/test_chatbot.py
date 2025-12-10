@@ -1,8 +1,3 @@
-"""
-Simple test script for the Chatbot Agent.
-
-Tests the HTTP interface locally.
-"""
 import httpx
 import asyncio
 import json

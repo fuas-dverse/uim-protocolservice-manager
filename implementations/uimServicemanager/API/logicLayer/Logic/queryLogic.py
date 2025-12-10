@@ -1,11 +1,3 @@
-"""
-Query Logic - FIXED for UIM Structure
-
-Works with new database field names:
-- service_url (not service_URL)
-- intent_name (not name)
-- Full UIM metadata fields
-"""
 from typing import List, Dict, Any, Optional
 from loguru import logger
 import os
