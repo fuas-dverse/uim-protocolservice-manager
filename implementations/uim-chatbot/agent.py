@@ -245,13 +245,13 @@ async def run_two_agent_system(
         logger.info("🤖 [AGENT 2] Starting Invocation Agent")
         logger.info("=" * 70)
 
-        # Pass the real service in context
+
         deps = AgentDependencies(
             service_invoker=service_invoker,
             query_context={'full_service': real_service}
         )
 
-        # Build parameter schema description
+
         param_descriptions = []
         for param in input_parameters:
             param_name = param.get("name")
@@ -265,7 +265,7 @@ async def run_two_agent_system(
 
         param_schema_text = "\n".join(param_descriptions) if param_descriptions else "  (No parameters required)"
 
-        # Build invocation prompt with explicit parameter instructions
+
         invocation_prompt = f"""You must invoke this service:
 
 SERVICE: {real_service_name}
@@ -292,7 +292,7 @@ Now create the parameters and call invoke_service."""
         logger.info(f"   Items Found: {invocation_result.data.items_found}")
         logger.info(f"   Summary: {invocation_result.data.data_summary}")
 
-        # Check if invocation actually called the tool
+
         invocation_called_tool = False
         if hasattr(invocation_result, '_all_messages'):
             for msg in invocation_result._all_messages:
@@ -308,7 +308,7 @@ Now create the parameters and call invoke_service."""
         else:
             logger.info("✅ [AGENT 2] Successfully called invoke_service tool")
 
-        # Return the formatted response
+
         return invocation_result.data.formatted_response
 
     except AttributeError as e:

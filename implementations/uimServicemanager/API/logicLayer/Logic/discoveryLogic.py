@@ -1,10 +1,10 @@
 """
-Discovery Logic - LLM-based service selection
+Discovery Logic
 
-Handles intelligent service discovery using intent tags and descriptions.
-Uses Ollama with llama3.2 for service selection based on user queries.
+Implements LLM-based intelligent service discovery by analyzing user queries
+and matching them against service capabilities using Ollama.
 """
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from logicLayer.Interface.IserviceDAL import IserviceDAL
 import httpx
 import json
@@ -33,19 +33,13 @@ class DiscoveryLogic:
             ValueError: If no appropriate service found
             RuntimeError: If LLM call fails
         """
-        # 1. Get all services with their intents
         services = self.serviceDAL.getServices()
-        
+
         if not services:
             raise ValueError("No services available in catalogue")
 
-        # 2. Build service summaries with tags from intents
         service_summaries = self._build_service_summaries(services)
-
-        # 3. Call LLM to select service
         selected_name = await self._call_llm_for_selection(user_query, service_summaries)
-
-        # 4. Find the service (with fuzzy matching)
         selected_service = self._find_service_by_name(services, selected_name)
 
         if not selected_service:
@@ -58,63 +52,61 @@ class DiscoveryLogic:
         return selected_service
 
     def _build_service_summaries(self, services: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Build summaries of services with aggregated tags from their intents.
-
-        Returns list of dicts: {name, description, tags, intent_names}
-        """
+        """Build summaries of services with aggregated tags from their intents"""
         summaries = []
 
         for service in services:
-            # Aggregate all tags from intents
             all_tags = set()
             intent_names = []
 
             for intent in service.get("intents", []):
+                all_tags.update(intent.get("tags", []))
                 intent_names.append(intent.get("intent_name", ""))
-                tags = intent.get("tags", [])
-                all_tags.update(tags)
 
             summaries.append({
-                "name": service["name"],
+                "name": service.get("name"),
                 "description": service.get("description", ""),
                 "tags": list(all_tags),
+                "intent_count": len(service.get("intents", [])),
                 "intent_names": intent_names
             })
 
         return summaries
 
     async def _call_llm_for_selection(
-        self, 
-        user_query: str, 
+        self,
+        user_query: str,
         service_summaries: List[Dict[str, Any]]
     ) -> str:
         """
-        Call Ollama LLM to select the most appropriate service.
+        Call Ollama LLM to select the best service for the query.
 
-        Returns the service name selected by the LLM.
+        Returns:
+            Name of the selected service
+
+        Raises:
+            RuntimeError: If LLM call fails
         """
-        # Format services for LLM
-        service_descriptions = []
-        for svc in service_summaries:
-            tags_str = ", ".join(svc["tags"]) if svc["tags"] else "no tags"
-            intents_str = ", ".join(svc["intent_names"]) if svc["intent_names"] else "no intents"
-            service_descriptions.append(
-                f"- {svc['name']}: {svc['description']} [Tags: {tags_str}] [Intents: {intents_str}]"
-            )
+        summaries_text = "\n".join([
+            f"- {s['name']}: {s['description'][:100]}... Tags: {', '.join(s['tags'][:5])}"
+            for s in service_summaries
+        ])
 
-        available_services = "\n".join(service_descriptions)
+        prompt = f"""You are a service discovery assistant. Given a user's query, select the MOST appropriate service from the list below.
 
-        # Build prompt
-        prompt = f"""ctx: User Question: {user_query}
-available services:
-{available_services}
+USER QUERY: "{user_query}"
 
-Question: Please select the service that is most appropriate to answer the User question and return the service name in the following format: {{answer: service_name}}
+AVAILABLE SERVICES:
+{summaries_text}
 
-Only return the JSON object, nothing else."""
+INSTRUCTIONS:
+1. Analyze which service best matches the user's intent
+2. Consider the service descriptions and tags
+3. Return ONLY the exact service name, nothing else
+4. Do not add quotes, explanations, or extra text
 
-        # Call Ollama
+YOUR RESPONSE (service name only):"""
+
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
@@ -126,91 +118,48 @@ Only return the JSON object, nothing else."""
                     }
                 )
                 response.raise_for_status()
-                
-                result = response.json()
-                llm_response = result.get("response", "")
-                
-                logger.debug(f"LLM raw response: {llm_response}")
-                
-                # Parse the response
-                selected_name = self._parse_llm_response(llm_response)
-                logger.info(f"🤖 LLM selected: {selected_name}")
+
+                data = response.json()
+                selected_name = data.get("response", "").strip()
+
+                selected_name = re.sub(r'^["\']|["\']$', '', selected_name)
+                selected_name = selected_name.split('\n')[0].strip()
+
+                logger.info(f"🤖 LLM selected: '{selected_name}'")
                 return selected_name
 
         except httpx.HTTPError as e:
-            logger.error(f"❌ Ollama API error: {e}")
-            raise RuntimeError(f"Failed to call LLM: {e}")
-
-    def _parse_llm_response(self, llm_response: str) -> str:
-        """
-        Parse LLM response to extract service name.
-
-        Handles various formats:
-        - {answer: Service Name}
-        - {"answer": "Service Name"}
-        - answer: Service Name
-        - Service Name
-        """
-        # Try JSON parsing first
-        try:
-            # Clean markdown code blocks if present
-            clean = llm_response.strip().strip('`').strip()
-            if clean.startswith('json'):
-                clean = clean[4:].strip()
-            
-            parsed = json.loads(clean)
-            if isinstance(parsed, dict) and "answer" in parsed:
-                return parsed["answer"].strip()
-        except (json.JSONDecodeError, KeyError):
-            pass
-
-        # Try regex extraction for {answer: X} or {"answer": "X"} format
-        match = re.search(
-            r'\{?\s*["\']?answer["\']?\s*:\s*["\']?([^"\'}\n]+)["\']?\s*\}?',
-            llm_response,
-            re.IGNORECASE
-        )
-        if match:
-            return match.group(1).strip()
-
-        # Last resort: return first line, cleaned
-        first_line = llm_response.split('\n')[0].strip()
-        cleaned = first_line.strip('{}').strip('"').strip("'").strip()
-        
-        logger.warning(f"⚠️  Using fallback parsing, extracted: {cleaned}")
-        return cleaned
+            logger.error(f"Failed to call Ollama: {e}")
+            raise RuntimeError(f"LLM service unavailable: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error during LLM call: {e}")
+            raise RuntimeError(f"LLM call failed: {str(e)}")
 
     def _find_service_by_name(
-        self, 
-        services: List[Dict[str, Any]], 
+        self,
+        services: List[Dict[str, Any]],
         name_query: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         """
-        Find service by name with fuzzy matching.
+        Find a service by name with fuzzy matching.
 
-        Tries:
-        1. Exact match (case-insensitive)
-        2. Partial match (name contains query or vice versa)
-        3. Fuzzy match using difflib
+        Tries exact match, partial match, then fuzzy match.
         """
         from difflib import get_close_matches
 
         name_lower = name_query.lower()
 
-        # Exact match (case-insensitive)
         for service in services:
             if service["name"].lower() == name_lower:
                 logger.debug(f"✅ Exact match found: {service['name']}")
                 return service
 
-        # Partial match (contains)
         for service in services:
             service_name_lower = service["name"].lower()
             if name_lower in service_name_lower or service_name_lower in name_lower:
                 logger.debug(f"✅ Partial match found: {service['name']}")
                 return service
 
-        # Fuzzy match
         service_names = [s["name"] for s in services]
         matches = get_close_matches(name_query, service_names, n=1, cutoff=0.6)
 

@@ -15,15 +15,6 @@ intents_collection = db["intents"]
 class ServiceDAL(IserviceDAL):
 
     def _batch_populate_intents(self, services: List[dict]) -> List[dict]:
-        """
-        Populate intents for multiple services in ONE database query.
-
-        This fixes the N+1 query problem where we were making
-        individual queries for each intent.
-
-        OLD: 1 service query + (N services × M intents) = 1 + (10 × 5) = 51 queries
-        NEW: 1 service query + 1 intent query = 2 queries total
-        """
         # Collect all unique intent IDs from all services
         all_intent_ids = set()
         for service in services:
@@ -114,7 +105,7 @@ class ServiceDAL(IserviceDAL):
     def addService(self, serviceName: str, serviceDescription: str,
                    service_URL: Optional[str], intent_ids: List[str]) -> str:
         """
-        Add a new service (OLD interface method).
+        Add a new service.
 
         Creates a minimal service with basic fields.
         For UIM-compliant services, use createService() instead.
@@ -134,7 +125,7 @@ class ServiceDAL(IserviceDAL):
     def updateService(self, serviceName: str, serviceDescription: str,
                       service_URL: Optional[str], intent_ids: List[str],
                       service_id: str) -> bool:
-        """Update a service (OLD interface method)"""
+        """Update a service """
         if not ObjectId.is_valid(service_id):
             return False
 

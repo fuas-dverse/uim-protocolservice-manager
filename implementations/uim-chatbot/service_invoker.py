@@ -1,3 +1,9 @@
+"""
+Generic Service Invoker
+
+Handles dynamic invocation of external REST services using metadata from the UIM catalogue.
+Supports multiple authentication methods, parameter locations, and response formats.
+"""
 import httpx
 import xmltodict
 import os
@@ -9,16 +15,16 @@ class GenericServiceInvoker:
     """
     Generic service invoker that works with any REST API.
 
-    Uses metadata from the catalogue to construct HTTP requests dynamically.
+    Uses metadata from the catalogue to construct HTTP requests dynamically,
+    supporting various authentication methods, parameter locations, and response formats.
     """
 
     def __init__(self, timeout: int = 30):
         self.client = httpx.AsyncClient(timeout=timeout, follow_redirects=True)
         self.timeout = timeout
 
-        # API keys stored in environment or config
         self.api_keys = {
-            "openweathermap.org": os.getenv("OPENWEATHER_API_KEY", "demo_key"),  # Replace with real key
+            "openweathermap.org": os.getenv("OPENWEATHER_API_KEY", "demo_key"),
         }
 
     async def close(self):
@@ -26,24 +32,24 @@ class GenericServiceInvoker:
         await self.client.aclose()
 
     async def invoke(
-        self,
-        service_metadata: Dict[str, Any],
-        intent_metadata: Dict[str, Any],
-        parameters: Dict[str, Any]
+            self,
+            service_metadata: Dict[str, Any],
+            intent_metadata: Dict[str, Any],
+            parameters: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Invoke a service intent using metadata.
 
         Args:
-            service_metadata: Service info (name, url, auth_type, etc.)
-            intent_metadata: Intent info (http_method, endpoint_path, input_parameters, etc.)
+            service_metadata: Service information (name, url, auth_type, etc.)
+            intent_metadata: Intent information (http_method, endpoint_path, input_parameters, etc.)
             parameters: User-provided parameters
 
         Returns:
-            Dict with service response data
+            Dictionary containing service response data
 
         Raises:
-            Exception if service call fails
+            Exception: If service call fails
         """
         service_name = service_metadata.get("name", "Unknown")
         intent_name = intent_metadata.get("intent_name", "unknown")
@@ -51,13 +57,11 @@ class GenericServiceInvoker:
         logger.info(f"🔧 Invoking {service_name} - {intent_name}")
         logger.info(f"   Parameters: {parameters}")
 
-        # Build the request
         method = intent_metadata.get("http_method", "POST")
         base_url = service_metadata.get("service_url")
         endpoint_path = intent_metadata.get("endpoint_path", "")
         full_url = f"{base_url}{endpoint_path}"
 
-        # Prepare parameters based on location (query, body, header, path)
         query_params = {}
         body_params = {}
         headers = {}
@@ -71,10 +75,8 @@ class GenericServiceInvoker:
             required = param_schema.get("required", True)
             default = param_schema.get("default")
 
-            # Get value from user parameters or use default
             value = parameters.get(param_name, default)
 
-            # Skip if not provided and not required
             if value is None and not required:
                 continue
 
@@ -82,7 +84,6 @@ class GenericServiceInvoker:
                 logger.warning(f"   Missing required parameter: {param_name}")
                 continue
 
-            # Route to appropriate location
             if location == "query":
                 query_params[param_name] = value
             elif location == "body":
@@ -92,7 +93,6 @@ class GenericServiceInvoker:
             elif location == "path":
                 path_params[param_name] = value
 
-        # Add authentication
         auth_type = service_metadata.get("auth_type", "none")
         if auth_type == "api_key":
             api_key = self._get_api_key(service_metadata)
@@ -105,7 +105,6 @@ class GenericServiceInvoker:
                 elif auth_header:
                     headers[auth_header] = api_key
 
-        # Replace path parameters in URL
         for param_name, param_value in path_params.items():
             full_url = full_url.replace(f"{{{param_name}}}", str(param_value))
 
@@ -113,7 +112,6 @@ class GenericServiceInvoker:
         logger.info(f"   Query: {query_params}")
 
         try:
-            # Make the HTTP request
             if method == "GET":
                 response = await self.client.get(full_url, params=query_params, headers=headers)
             elif method == "POST":
@@ -130,17 +128,13 @@ class GenericServiceInvoker:
 
             response.raise_for_status()
 
-            # Parse response based on content type
             content_type = response.headers.get("content-type", "")
 
             if "xml" in content_type or "atom" in content_type:
-                # Parse XML (e.g., arXiv)
                 return await self._parse_xml_response(response, service_name, intent_name)
             elif "json" in content_type or response.text.strip().startswith("{"):
-                # Parse JSON
                 return await self._parse_json_response(response, service_name, intent_name)
             else:
-                # Return raw text
                 return {
                     "success": True,
                     "data": response.text,
@@ -155,10 +149,9 @@ class GenericServiceInvoker:
             raise Exception(f"Failed to invoke {service_name}: {str(e)}")
 
     def _get_api_key(self, service_metadata: Dict[str, Any]) -> Optional[str]:
-        """Get API key for a service"""
+        """Get API key for a service based on its URL"""
         service_url = service_metadata.get("service_url", "")
 
-        # Extract domain from URL
         for domain, api_key in self.api_keys.items():
             if domain in service_url:
                 return api_key
@@ -166,20 +159,18 @@ class GenericServiceInvoker:
         return None
 
     async def _parse_xml_response(
-        self,
-        response: httpx.Response,
-        service_name: str,
-        intent_name: str
+            self,
+            response: httpx.Response,
+            service_name: str,
+            intent_name: str
     ) -> Dict[str, Any]:
         """Parse XML response (e.g., from arXiv)"""
         try:
             data = xmltodict.parse(response.text)
 
-            # arXiv-specific parsing
             if "arxiv" in service_name.lower():
                 return self._parse_arxiv_response(data, intent_name)
 
-            # Generic XML parsing
             return {
                 "success": True,
                 "data": data,
@@ -191,20 +182,18 @@ class GenericServiceInvoker:
             raise
 
     async def _parse_json_response(
-        self,
-        response: httpx.Response,
-        service_name: str,
-        intent_name: str
+            self,
+            response: httpx.Response,
+            service_name: str,
+            intent_name: str
     ) -> Dict[str, Any]:
         """Parse JSON response"""
         try:
             data = response.json()
 
-            # OpenWeather-specific parsing
             if "openweather" in service_name.lower():
                 return self._parse_openweather_response(data, intent_name)
 
-            # Generic JSON parsing
             return {
                 "success": True,
                 "data": data,
@@ -216,41 +205,28 @@ class GenericServiceInvoker:
             raise
 
     def _parse_arxiv_response(self, data: Dict[str, Any], intent_name: str) -> Dict[str, Any]:
-        """Parse arXiv XML response into clean format"""
-        entries = data.get("feed", {}).get("entry", [])
+        """Parse arXiv XML response into structured format"""
+        feed = data.get("feed", {})
+        entries = feed.get("entry", [])
 
-        # Ensure entries is a list
-        if isinstance(entries, dict):
+        if not isinstance(entries, list):
             entries = [entries]
 
         papers = []
         for entry in entries:
-            # Extract authors
-            authors_data = entry.get("author", [])
-            if isinstance(authors_data, dict):
-                authors_data = [authors_data]
-            authors = [a.get("name", "Unknown") for a in authors_data]
+            authors_raw = entry.get("author", [])
+            if not isinstance(authors_raw, list):
+                authors_raw = [authors_raw]
 
-            # Extract links
-            links = entry.get("link", [])
-            if isinstance(links, dict):
-                links = [links]
-
-            pdf_url = None
-            for link in links:
-                if link.get("@title") == "pdf":
-                    pdf_url = link.get("@href")
-                    break
+            authors = [a.get("name", "Unknown") for a in authors_raw if a.get("name")]
 
             paper = {
-                "id": entry.get("id", "").split("/")[-1],
                 "title": entry.get("title", "").strip(),
-                "authors": authors,
-                "summary": entry.get("summary", "").strip()[:500] + "..." if len(entry.get("summary", "")) > 500 else entry.get("summary", "").strip(),
+                "authors": ", ".join(authors) if authors else "Unknown",
+                "summary": entry.get("summary", "").strip(),
+                "url": entry.get("id", ""),
                 "published": entry.get("published", ""),
-                "updated": entry.get("updated", ""),
-                "pdf_url": pdf_url,
-                "categories": [c.get("@term") for c in (entry.get("category", []) if isinstance(entry.get("category", []), list) else [entry.get("category", {})])]
+                "updated": entry.get("updated", "")
             }
             papers.append(paper)
 
@@ -264,10 +240,8 @@ class GenericServiceInvoker:
         }
 
     def _parse_openweather_response(self, data: Dict[str, Any], intent_name: str) -> Dict[str, Any]:
-        """Parse OpenWeather JSON response into clean format"""
-
+        """Parse OpenWeather JSON response into structured format"""
         if intent_name == "get_current_weather":
-            # Current weather response
             return {
                 "success": True,
                 "temperature": data.get("main", {}).get("temp"),
@@ -281,11 +255,10 @@ class GenericServiceInvoker:
             }
 
         elif intent_name == "get_forecast":
-            # Forecast response
             forecast_list = data.get("list", [])
             forecasts = []
 
-            for item in forecast_list[:8]:  # Next 24 hours (3-hour intervals)
+            for item in forecast_list[:8]:
                 forecasts.append({
                     "datetime": item.get("dt_txt"),
                     "temperature": item.get("main", {}).get("temp"),
@@ -300,7 +273,6 @@ class GenericServiceInvoker:
                 "format": "openweather_forecast"
             }
 
-        # Generic OpenWeather response
         return {
             "success": True,
             "data": data,

@@ -1,8 +1,8 @@
 """
-Discovery Controller - LLM-based service discovery endpoint
+Discovery Controller
 
+REST API endpoint for LLM-based service discovery.
 Provides intelligent service selection using natural language queries.
-Uses Ollama LLM to analyze intent tags and select the most appropriate service.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from logicLayer.Logic.discoveryLogic import DiscoveryLogic
@@ -44,36 +44,33 @@ async def discover_service(
 ):
     """
     Discover the best service for a user query.
-    
+
     The LLM analyzes:
     - Service descriptions
     - Intent tags (aggregated from all intents)
     - Intent names and capabilities
-    
+
     Returns the complete service object with all intents.
     """
     try:
         service = await logic.discover_service(request.user_query)
-        
+
         return DiscoveryResponse(
             service=service,
             selected_name=service["name"],
             reasoning=f"Selected based on query: '{request.user_query}'"
         )
     except ValueError as e:
-        # No service found or catalogue empty
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
     except RuntimeError as e:
-        # LLM/Ollama connection failed
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(e)
         )
     except Exception as e:
-        # Unexpected error
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Discovery failed: {str(e)}"
@@ -86,11 +83,7 @@ async def discover_service(
     description="Check if the discovery service and LLM backend are operational"
 )
 async def health_check():
-    """
-    Check if discovery service is operational.
-    
-    Returns status information about the discovery service.
-    """
+    """Check if discovery service is operational"""
     return {
         "status": "healthy",
         "service": "discovery",

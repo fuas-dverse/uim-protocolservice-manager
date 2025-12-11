@@ -1,7 +1,7 @@
 """
-Discovery Viewmodels - Request/Response models for discovery endpoint
+Discovery Viewmodels
 
-Defines the data structures for the LLM-based service discovery API.
+Request and response models for the LLM-based service discovery API.
 """
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional
@@ -50,7 +50,7 @@ class DiscoveryResponse(BaseModel):
                 "service": {
                     "id": "6937f343eb4165f5c391ff96",
                     "name": "arXiv API",
-                    "description": "Access to scientific research papers...",
+                    "description": "Access to scientific research papers",
                     "service_url": "https://export.arxiv.org/api",
                     "intents": [
                         {
