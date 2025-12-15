@@ -36,7 +36,7 @@ class DiscoveryResult(BaseModel):
 discovery_agent = Agent(
     'ollama:llama3.1',
     deps_type=AgentDependencies,
-    result_type=DiscoveryResult,  # ← Forces structured output
+    result_type=DiscoveryResult,
     system_prompt="""You discover the right service for a user query.
 
 Call discover_services with the user's query, then return:
@@ -97,7 +97,7 @@ class InvocationResult(BaseModel):
 invocation_agent = Agent(
     'ollama:llama3.1',
     deps_type=AgentDependencies,
-    result_type=InvocationResult,  # ← Forces structured output
+    result_type=InvocationResult,
     system_prompt="""You invoke a service and format the results.
 
 You MUST call invoke_service with:
@@ -122,16 +122,12 @@ async def invoke_service(
         intent_name: str,
         parameters: Dict[str, Any]
 ) -> Dict[str, Any]:
-    """
-    Call a service to get REAL DATA.
 
-    NOTE: This expects the full service to be passed via context.
-    """
     logger.info(f"🚀 [AGENT 2] invoke_service called: {service_name}.{intent_name}")
     logger.info(f"   [AGENT 2] Parameters: {parameters}")
 
     try:
-        # Get service from context (passed from Agent 1)
+
         service = ctx.deps.query_context.get('full_service')
 
         if not service:
@@ -140,7 +136,7 @@ async def invoke_service(
 
         logger.info(f"✅ [AGENT 2] Using service from context: {service.get('name')}")
 
-        # Find the intent
+
         intents = service.get("intents", [])
         intent_metadata = None
 
@@ -157,7 +153,7 @@ async def invoke_service(
                 "error": f"Intent '{intent_name}' not found. Available: {available}"
             }
 
-        # Call the service
+
         invoker = ctx.deps.service_invoker
 
         service_metadata = {
@@ -177,7 +173,7 @@ async def invoke_service(
         logger.info(f"✅ [AGENT 2] Service invocation successful")
         logger.info(f"🔍 [AGENT 2] Result keys: {result.keys()}")
 
-        # Log specific data
+
         if "papers" in result:
             logger.info(f"📄 [AGENT 2] Found {len(result['papers'])} papers")
         elif "items" in result:
@@ -217,7 +213,7 @@ async def run_two_agent_system(
         async with httpx.AsyncClient(timeout=60.0) as client:
             discovery_response = await client.post(
                 "http://localhost:8000/discovery/discover",
-                json={"user_query": user_query},  # ← EXACT user query, no transformation
+                json={"user_query": user_query},
                 follow_redirects=True
             )
             discovery_response.raise_for_status()
@@ -228,7 +224,7 @@ async def run_two_agent_system(
 
             logger.info(f"✅ Discovery selected: {real_service_name}")
 
-            # Find a good default intent
+
             intents = real_service.get("intents", [])
             if not intents:
                 return f"Error: Service '{real_service_name}' has no intents available"
@@ -236,7 +232,7 @@ async def run_two_agent_system(
             recommended_intent = intents[0].get("intent_name")
             logger.info(f"   Using intent: {recommended_intent}")
 
-            # Get parameter schema for the intent
+
             input_parameters = intents[0].get("input_parameters", [])
             logger.info(f"   Parameters needed: {[p.get('name') for p in input_parameters]}")
 

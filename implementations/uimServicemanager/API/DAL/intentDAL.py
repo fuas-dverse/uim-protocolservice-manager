@@ -52,14 +52,14 @@ class IntentDAL(IintentDAL):
             String ID of created intent
         """
         try:
-            # Add timestamps
+
             intent_data["created_at"] = datetime.utcnow()
             intent_data["updated_at"] = datetime.utcnow()
 
-            # Validate data using Pydantic model
+
             intent_doc = IntentDocument(**intent_data)
 
-            # Insert into MongoDB
+
             result = intents_collection.insert_one(
                 intent_doc.model_dump(by_alias=True, exclude={"id"})
             )
@@ -85,15 +85,15 @@ class IntentDAL(IintentDAL):
             raise ValueError("Invalid intent ID format")
 
         try:
-            # Update timestamp
+
             intent_data["updated_at"] = datetime.utcnow()
 
-            # Remove any fields that shouldn't be updated
+
             intent_data.pop("id", None)
             intent_data.pop("_id", None)
             intent_data.pop("created_at", None)
 
-            # Update in MongoDB
+            
             result = intents_collection.update_one(
                 {"_id": ObjectId(intent_id)},
                 {"$set": intent_data}
