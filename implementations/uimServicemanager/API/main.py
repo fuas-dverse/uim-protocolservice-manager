@@ -1,3 +1,8 @@
+"""
+UIM Service Manager - Main API
+
+Unified Intent Mediator service catalogue with REST and NATS interfaces.
+"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -12,67 +17,57 @@ from Presentation.Controller import uimProtocolController
 from Presentation.Controller import queryController
 from Presentation.Controller import discoveryController
 
-# NATS broker (will be initialized in lifespan)
 nats_broker = None
 nats_task = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Lifespan context manager for FastAPI.
-    Handles startup and shutdown of NATS messaging.
-    """
+    """Lifespan context manager for startup/shutdown."""
     global nats_broker, nats_task
-    
+
     # Startup
-    logger.info("🚀 Starting UIM Service Manager...")
-    
-    # Get NATS URL from environment or use default
+    logger.info("Starting UIM Service Manager...")
+
     nats_url = os.getenv("NATS_URL", "nats://localhost:4222")
-    
+
     try:
-        # Initialize NATS broker
         nats_broker = NatsBroker(nats_url)
-        logger.info(f"📡 Connecting to NATS at {nats_url}...")
-        
-        # Start NATS broker in background
+        logger.info(f"Connecting to NATS at {nats_url}...")
+
         nats_task = asyncio.create_task(nats_broker.start())
-        
-        # Give it a moment to connect
         await asyncio.sleep(1)
-        
-        logger.info("✅ NATS messaging initialized successfully")
+
+        logger.info("NATS messaging initialized successfully")
         logger.info("   - Subscribed to: uim.catalogue.query")
         logger.info("   - Publishing to: uim.catalogue.response")
-        
+
     except Exception as e:
-        logger.warning(f"⚠️  NATS connection failed: {e}")
-        logger.warning("   REST API will work, but NATS messaging is unavailable")
+        logger.warning(f"NATS connection failed: {e}")
+        logger.warning("REST API will work, but NATS messaging is unavailable")
         nats_broker = None
-    
-    logger.info("✅ API API started successfully")
-    
-    yield  # Application runs here
-    
+
+    logger.info("UIM Service Manager started successfully")
+
+    yield
+
     # Shutdown
-    logger.info("🛑 Shutting down UIM Service Manager...")
-    
+    logger.info("Shutting down UIM Service Manager...")
+
     if nats_task:
         nats_task.cancel()
         try:
             await nats_task
         except asyncio.CancelledError:
             pass
-    
+
     if nats_broker:
         await nats_broker.close()
-        logger.info("✅ NATS connection closed")
-    
-    logger.info("✅ Shutdown complete")
+        logger.info("NATS connection closed")
+
+    logger.info("Shutdown complete")
 
 
-# Create FastAPI app with lifespan
 app = FastAPI(
     title="UIM Service Manager",
     description="Unified Intent Mediator - Service Catalogue with Query Interface",
@@ -80,7 +75,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -89,7 +83,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
 app.include_router(servicesController.router, prefix="/services", tags=["Services"])
 app.include_router(intentsController.router, prefix="/intents", tags=["Intents"])
 app.include_router(uimProtocolController.router, prefix="/uimprotocol", tags=["UIM Protocol"])

@@ -1,8 +1,7 @@
 """
-DVerse Chatbot Agent
+DVerse Chatbot Main
 
-Production chatbot service for the DVerse platform that enables natural language
-queries to discover and invoke services from the UIM catalogue.
+Fast system architecture with template-based formatting.
 """
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
@@ -21,27 +20,29 @@ service_invoker: GenericServiceInvoker = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Manage application startup and shutdown"""
+    """Lifespan context manager for startup/shutdown events."""
     global service_invoker
 
-    logger.info("🚀 Starting Chatbot Agent Service...")
+    # Startup
+    logger.info("Starting Chatbot Agent Service...")
+    logger.info("Using fast system with template-based formatting")
 
     service_invoker = GenericServiceInvoker()
-    logger.info("✅ Service invoker initialized")
+    logger.info("Service invoker initialized")
+    logger.info("Chatbot Agent started successfully")
 
     yield
 
-    logger.info("🛑 Shutting down Chatbot Agent...")
-
+    # Shutdown
+    logger.info("Shutting down Chatbot Agent...")
     if service_invoker:
         await service_invoker.close()
-
-    logger.info("✅ Shutdown complete")
+    logger.info("Chatbot Agent shutdown complete")
 
 
 app = FastAPI(
     title="DVerse Chatbot Agent",
-    description="Natural language interface for service discovery and invocation",
+    description="Fast system with template-based service formatting",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -57,16 +58,17 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    """Health check and service information"""
+    """Health check endpoint"""
     return {
         "service": "DVerse Chatbot Agent",
         "status": "running",
         "version": "1.0.0",
+        "architecture": "Fast System",
         "features": [
-            "Natural language query processing",
-            "Intelligent service discovery via LLM",
-            "Dynamic service invocation",
-            "Multi-format response handling"
+            "Discovery service integration",
+            "Generic service invocation",
+            "Template-based formatting",
+            "Error handling"
         ]
     }
 
@@ -74,21 +76,23 @@ async def root():
 @app.post("/chat", response_model=ChatbotResponse)
 async def chat_endpoint(query: ChatbotQuery) -> ChatbotResponse:
     """
-    Process natural language queries to discover and invoke services.
+    HTTP endpoint for chatbot queries.
 
-    The chatbot:
-    1. Uses LLM-based discovery to find the appropriate service
-    2. Extracts required parameters from the user query
-    3. Invokes the service with properly formatted parameters
-    4. Formats and returns results in a user-friendly manner
+    Example:
+        POST /chat
+        {
+            "user_id": "user-123",
+            "message": "Find papers about neural networks",
+            "context": {}
+        }
     """
-    logger.info(f"📨 Chat query from {query.user_id}: '{query.message}'")
+    logger.info(f"Received chat query from {query.user_id}: '{query.message}'")
 
     try:
         result = await process_chat_query(query)
         return result
     except Exception as e:
-        logger.error(f"❌ Error processing chat query: {e}", exc_info=True)
+        logger.error(f"Error processing chat query: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to process query: {str(e)}"
@@ -96,9 +100,9 @@ async def chat_endpoint(query: ChatbotQuery) -> ChatbotResponse:
 
 
 async def process_chat_query(query: ChatbotQuery) -> ChatbotResponse:
-    """Core query processing logic"""
+    """Core logic for processing chat queries."""
     try:
-        logger.info(f"🤖 Processing query for user {query.user_id}")
+        logger.info(f"Processing query for user {query.user_id}")
 
         response_text = await run_fast_system(
             user_query=query.message,
@@ -115,12 +119,11 @@ async def process_chat_query(query: ChatbotQuery) -> ChatbotResponse:
             success=True
         )
 
-        logger.info(f"✅ Successfully processed query for {query.user_id}")
+        logger.info(f"Successfully processed query for {query.user_id}")
         return response
 
     except Exception as e:
-        logger.error(f"❌ Error in process_chat_query: {e}", exc_info=True)
-
+        logger.error(f"Error in process_chat_query: {e}", exc_info=True)
         return ChatbotResponse(
             user_id=query.user_id,
             message=f"I encountered an error: {str(e)}",
@@ -132,11 +135,5 @@ async def process_chat_query(query: ChatbotQuery) -> ChatbotResponse:
 
 if __name__ == "__main__":
     import uvicorn
-
     logger.info("Starting chatbot server on http://localhost:8001")
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8001,
-        log_level="info"
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8001, log_level="info")

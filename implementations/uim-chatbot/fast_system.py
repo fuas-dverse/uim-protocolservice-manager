@@ -1,10 +1,3 @@
-"""
-Fast System - Direct service discovery and invocation
-
-Implements a streamlined approach to service discovery and invocation by
-calling the Discovery Service directly and using template-based formatting
-instead of LLM-based response generation.
-"""
 import httpx
 from typing import Dict, Any
 from loguru import logger
@@ -13,79 +6,87 @@ from service_invoker import GenericServiceInvoker
 
 
 def format_arxiv_papers(result: Dict[str, Any]) -> str:
-    """Format arXiv papers into readable response"""
+    """Fast template-based formatting for arXiv papers"""
     if not result.get("success"):
-        return "I couldn't retrieve papers from arXiv. " + result.get("error", "Unknown error")
+        return f"Error: {result.get('error', 'Unknown error')}"
 
     papers = result.get("papers", [])
     if not papers:
-        return "I didn't find any papers matching your query."
+        return "No papers found."
 
     response = f"I found {len(papers)} papers:\n\n"
 
-    for i, paper in enumerate(papers[:5], 1):
-        title = paper.get("title", "Untitled")
-        authors = paper.get("authors", "Unknown authors")
-        summary = paper.get("summary", "")
-        url = paper.get("url", "")
+    for i, paper in enumerate(papers, 1):
+        title = paper.get("title", "No title")
+        authors = paper.get("authors", [])
+        summary = paper.get("summary", "No summary available")
+        pdf_url = paper.get("pdf_url", "")
+
+        author_str = ", ".join(authors[:3])
+        if len(authors) > 3:
+            author_str += f" et al."
+
+        summary_short = summary[:200] + "..." if len(summary) > 200 else summary
 
         response += f"**{i}. {title}**\n"
-        response += f"   Authors: {authors}\n"
-        if summary:
-            summary_short = summary[:200] + "..." if len(summary) > 200 else summary
-            response += f"   {summary_short}\n"
-        if url:
-            response += f"   🔗 {url}\n"
+        response += f"   Authors: {author_str}\n"
+        response += f"   {summary_short}\n"
+        if pdf_url:
+            response += f"   {pdf_url}\n"
         response += "\n"
 
     return response
 
 
 def format_generic_results(result: Dict[str, Any], service_name: str) -> str:
-    """Format generic service results"""
+    """Generic template-based formatting for any service"""
     if not result.get("success"):
-        return f"I couldn't retrieve data from {service_name}. " + result.get("error", "Unknown error")
+        return f"Error: {result.get('error', 'Unknown error')}"
 
-    items = result.get("items", [])
-    if items:
-        response = f"I found {len(items)} results from {service_name}:\n\n"
-        for i, item in enumerate(items[:5], 1):
-            title = item.get("title") or item.get("name", "Item " + str(i))
-            desc_short = item.get("description", "")[:100]
-            url = item.get("url", "")
+    items = None
+    for key in ['papers', 'items', 'results', 'data', 'tracks', 'repositories']:
+        if key in result:
+            items = result[key]
+            break
 
-            response += f"**{i}. {title}**\n"
-            if desc_short:
-                response += f"   {desc_short}\n"
-            if url:
-                response += f"   🔗 {url}\n"
-            response += "\n"
-        return response
+    if not items:
+        return f"Result from {service_name}:\n{result}"
 
-    data = result.get("data", {})
-    return f"Results from {service_name}:\n{str(data)[:500]}"
+    response = f"I found {len(items)} results:\n\n"
+
+    for i, item in enumerate(items[:10], 1):
+        title = item.get("title") or item.get("name") or item.get("id") or f"Item {i}"
+        desc = item.get("summary") or item.get("description") or item.get("snippet") or ""
+        desc_short = desc[:150] + "..." if len(desc) > 150 else desc
+        url = item.get("url") or item.get("pdf_url") or item.get("link") or item.get("web_url") or ""
+
+        response += f"**{i}. {title}**\n"
+        if desc_short:
+            response += f"   {desc_short}\n"
+        if url:
+            response += f"   {url}\n"
+        response += "\n"
+
+    return response
 
 
 async def run_fast_system(
-        user_query: str,
-        service_invoker: GenericServiceInvoker,
-        query_context: Dict[str, Any] = None
+    user_query: str,
+    service_invoker: GenericServiceInvoker,
+    query_context: Dict[str, Any] = None
 ) -> str:
     """
-    Execute service discovery and invocation with template-based formatting.
+    Fast orchestrator - no LLM for formatting.
 
-    Process:
-    1. Call Discovery Service to find the appropriate service
-    2. Extract and format parameters for the selected service
-    3. Invoke the service with the formatted parameters
-    4. Format results using service-specific templates
-
-    Returns:
-        Formatted response string ready for user display
+    Flow:
+    1. Call Discovery Service directly
+    2. Call service directly (no agent)
+    3. Format with template (instant)
     """
+
     try:
         logger.info("=" * 70)
-        logger.info("🔍 Calling Discovery Service")
+        logger.info("Calling Discovery Service")
         logger.info("=" * 70)
         logger.info(f"   Query: {user_query}")
 
@@ -101,10 +102,10 @@ async def run_fast_system(
             service = discovery_data.get("service")
             service_name = discovery_data.get("selected_name")
 
-            logger.info(f"✅ Discovery selected: {service_name}")
+            logger.info(f"Discovery selected: {service_name}")
 
         logger.info("=" * 70)
-        logger.info("🚀 Invoking service")
+        logger.info("Invoking service")
         logger.info("=" * 70)
 
         intents = service.get("intents", [])
@@ -144,10 +145,10 @@ async def run_fast_system(
             parameters=parameters
         )
 
-        logger.info(f"✅ Service invocation successful")
+        logger.info(f"Service invocation successful")
 
         logger.info("=" * 70)
-        logger.info("📝 Formatting results")
+        logger.info("Formatting results")
         logger.info("=" * 70)
 
         if "arxiv" in service_name.lower():
@@ -155,10 +156,10 @@ async def run_fast_system(
         else:
             formatted = format_generic_results(result, service_name)
 
-        logger.info(f"✅ Formatted response ready ({len(formatted)} chars)")
+        logger.info(f"Formatted response ready ({len(formatted)} chars)")
 
         return formatted
 
     except Exception as e:
-        logger.error(f"❌ Error: {e}", exc_info=True)
+        logger.error(f"Error: {e}", exc_info=True)
         return f"Error: {str(e)}"
