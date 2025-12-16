@@ -3,8 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DVerse Chatbot</title>
+  <title>DVerse Demo</title>
+  <meta name="description" content="DVerse Demo - Intelligent service discovery and invocation using Unified Intent Mediator (UIM) principles">
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom animations for smoother loading indicators */
+    @keyframes bounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .animate-bounce {
+      animation: bounce 1s infinite;
+    }
+
+    /* Smooth fade-in for modal */
+    .modal-backdrop {
+      animation: fadeIn 0.2s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>
