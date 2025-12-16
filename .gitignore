@@ -199,11 +199,11 @@ implementations/uimServicemanager/API/DAL/seed_data.json
 implementations/uimServicemanager/API/DAL/seed_database.py
 
 # to ensure no keys are being uploaded
-implementations\uimServicemanager\caddy_data\caddy\certificates\local\localhost\localhost.crt
-implementations\uimServicemanager\caddy_data\caddy\certificates\local\localhost\localhost.key
+implementations/uimServicemanager/caddy_data/caddy/certificates/local/localhost/localhost.crt
+implementations/uimServicemanager/caddy_data/caddy/certificates/local/localhost/localhost.key
 
-implementations\uimServicemanager\caddy_data\caddy\pki\authorities\local\intermediate.crt
-implementations\uimServicemanager\caddy_data\caddy\pki\authorities\local\intermediate.key
+implementations/uimServicemanager/caddy_data/caddy/pki/authorities/local/intermediate.crt
+implementations/uimServicemanager/caddy_data/caddy/pki/authorities/local/intermediate.key
 
 
 
