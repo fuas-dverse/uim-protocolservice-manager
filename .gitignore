@@ -207,3 +207,7 @@ implementations/uimServicemanager/caddy_data/caddy/pki/authorities/local/interme
 
 
 
+*.crt
+*.key
+implementations/uimServicemanager/caddy_data/caddy/certificates/local/localhost/localhost.crt
+implementations/uimServicemanager/caddy_data/caddy/certificates/local/localhost/localhost.key

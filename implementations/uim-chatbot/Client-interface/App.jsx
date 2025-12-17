@@ -10,6 +10,32 @@ function App() {
   const [error, setError] = createSignal(null);
   const [userId] = createSignal(`user-${Date.now()}`);
   const [showHowItWorks, setShowHowItWorks] = createSignal(false);
+  const [availableServices, setAvailableServices] = createSignal([]); // NEW: Store services from catalogue
+
+  // Fetch available services from catalogue on mount
+  createEffect(() => {
+    fetchAvailableServices();
+  });
+
+  const fetchAvailableServices = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/services/', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableServices(data.services || []);
+        console.log('Fetched services:', data.services?.length);
+      }
+    } catch (err) {
+      console.error('Failed to fetch services:', err);
+      // Don't show error to user, just log it
+    }
+  };
 
   // Auto-scroll to bottom when new messages appear
   let messagesEndRef;
@@ -34,7 +60,7 @@ function App() {
     setInputMessage('');
     setIsLoading(true);
     setError(null);
-
+    
     // STEP 1: Discover which service to use
     setProcessingStatus('🔍 Discovering the right service for your query...');
     setCurrentService('');
@@ -62,17 +88,17 @@ function App() {
       const discoverData = await discoverResponse.json();
       const serviceName = discoverData.service_name;
       const intentName = discoverData.intent_name;
-
+      
       // Show which service is being used
       setCurrentService(serviceName);
       setProcessingStatus(`🚀 Using ${serviceName}...`);
-
+      
       // Small delay so user can see the service name
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // ===== STEP 2: INVOKE =====
       setProcessingStatus(`🚀 Calling ${serviceName} API...`);
-
+      
       const invokeResponse = await fetch('http://localhost:8001/chat/invoke', {
         method: 'POST',
         headers: {
@@ -110,28 +136,28 @@ function App() {
         success: data.success,
         timestamp: data.timestamp
       };
-
+      
       // Debug logging
       console.log("Bot message:", botMessage);
       console.log("Service invocation:", data.service_invocation);
       console.log("Has papers?", data.service_invocation?.data?.papers?.length);
-
+      
       setMessages([...messages(), botMessage]);
-
+      
       // Clear status on success
       setProcessingStatus('');
       setCurrentService('');
 
     } catch (err) {
       console.error('Failed to send message:', err);
-
+      
       // More user-friendly error messages
       let errorMessage = err.message;
-
+      
       if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
         errorMessage = 'Cannot connect to DVerse Demo. Please make sure the chatbot service is running on port 8001.';
       }
-
+      
       // Add error message to chat (NOT as banner)
       const errorChatMessage = {
         role: 'error',
@@ -139,7 +165,7 @@ function App() {
         timestamp: new Date().toISOString()
       };
       setMessages([...messages(), errorChatMessage]);
-
+      
       // Clear status on error
       setProcessingStatus('');
       setCurrentService('');
@@ -208,12 +234,12 @@ function App() {
 
       {/* How It Works Modal */}
       <Show when={showHowItWorks()}>
-        <div
+        <div 
           class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={() => setShowHowItWorks(false)}
         >
-          <div
-            class="bg-white rounded-lg shadow-2xl max-w-2xl max-h-[80vh] overflow-y-auto p-8 m-4"
+          <div 
+            class="bg-white rounded-lg shadow-2xl max-w-4xl max-h-[80vh] overflow-y-auto p-8 m-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div class="flex justify-between items-start mb-6">
@@ -230,8 +256,8 @@ function App() {
               <section>
                 <h3 class="text-xl font-semibold text-indigo-700 mb-2">🎯 What is DVerse?</h3>
                 <p>
-                  DVerse is a <strong>Unified Intent Mediator (UIM)</strong> implementation that enables intelligent
-                  service discovery and invocation. It acts as a smart bridge between you and external APIs,
+                  DVerse is a <strong>Unified Intent Mediator (UIM)</strong> implementation that enables intelligent 
+                  service discovery and invocation. It acts as a smart bridge between you and external APIs, 
                   automatically finding and calling the right service based on your natural language query.
                 </p>
               </section>
@@ -252,7 +278,7 @@ function App() {
                     <div>
                       <strong>Service Discovery</strong>
                       <p class="text-sm">
-                        Our AI analyzes your query and searches the UIM catalogue to find the best matching
+                        Our AI analyzes your query and searches the UIM catalogue to find the best matching 
                         service (e.g., arXiv for academic papers, OpenWeather for weather data)
                       </p>
                     </div>
@@ -263,7 +289,7 @@ function App() {
                     <div>
                       <strong>Service Invocation</strong>
                       <p class="text-sm">
-                        The system automatically calls the selected service with the right parameters,
+                        The system automatically calls the selected service with the right parameters, 
                         handling API authentication and data formatting for you
                       </p>
                     </div>
@@ -274,7 +300,7 @@ function App() {
                     <div>
                       <strong>You get results</strong>
                       <p class="text-sm">
-                        The response is formatted in a clear, readable way with relevant information
+                        The response is formatted in a clear, readable way with relevant information 
                         extracted from the API
                       </p>
                     </div>
@@ -297,43 +323,34 @@ function App() {
 
               <section>
                 <h3 class="text-xl font-semibold text-indigo-700 mb-2">🔌 Available Services</h3>
-                <ul class="list-disc list-inside space-y-1 text-sm">
-                  <li><strong>arXiv API</strong> - Academic research papers</li>
-                  <li><strong>OpenWeather</strong> - Weather data (requires API key)</li>
-                  <li><strong>News API</strong> - Latest news articles (requires API key)</li>
-                  <li><strong>GitHub</strong> - Repository search (requires API key)</li>
-                  <li><strong>Spotify</strong> - Music search (requires API key)</li>
-                  <li><strong>OpenAI</strong> - AI completions (requires API key)</li>
-                </ul>
+                <Show 
+                  when={availableServices().length > 0}
+                  fallback={
+                    <p class="text-sm text-gray-500">Loading services from catalogue...</p>
+                  }
+                >
+                  <ul class="list-disc list-inside space-y-1 text-sm">
+                    <For each={availableServices()}>
+                      {(service) => (
+                        <li>
+                          <strong>{service.name}</strong>
+                          {service.description && ` - ${service.description}`}
+                        </li>
+                      )}
+                    </For>
+                  </ul>
+                </Show>
                 <p class="text-xs text-gray-500 mt-2">
-                  * Some services require API keys. If you see an error about missing API keys,
+                  * Some services require API keys. If you see an error about missing API keys, 
                   contact the system administrator to configure authentication.
                 </p>
               </section>
 
               <section>
-                <h3 class="text-xl font-semibold text-indigo-700 mb-2">💡 Example Queries</h3>
-                <ul class="space-y-2">
-                  <li class="p-2 bg-gray-50 rounded">
-                    <code class="text-indigo-600">"Find papers about machine learning"</code>
-                    <span class="text-sm text-gray-600"> → Uses arXiv</span>
-                  </li>
-                  <li class="p-2 bg-gray-50 rounded">
-                    <code class="text-indigo-600">"What's the weather in Amsterdam?"</code>
-                    <span class="text-sm text-gray-600"> → Uses OpenWeather</span>
-                  </li>
-                  <li class="p-2 bg-gray-50 rounded">
-                    <code class="text-indigo-600">"Search for repositories about Python"</code>
-                    <span class="text-sm text-gray-600"> → Uses GitHub</span>
-                  </li>
-                </ul>
-              </section>
-
-              <section>
                 <h3 class="text-xl font-semibold text-indigo-700 mb-2">🎓 Research Context</h3>
                 <p class="text-sm">
-                  This is a <strong>Level 2 UIM implementation</strong> created as part of a university
-                  research project at Fontys ICT. It demonstrates how UIM principles can work with
+                  This is a <strong>Level 2 UIM implementation</strong> created as part of a university 
+                  research project at Fontys ICT. It demonstrates how UIM principles can work with 
                   existing non-UIM REST APIs by using the catalogue as a translation layer.
                 </p>
               </section>
@@ -370,12 +387,6 @@ function App() {
                   <li>• "Get weather data"</li>
                 </ul>
               </div>
-              <button
-                onClick={() => setShowHowItWorks(true)}
-                class="mt-6 px-6 py-3 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition"
-              >
-                📖 Learn how this works
-              </button>
             </div>
           </Show>
 
