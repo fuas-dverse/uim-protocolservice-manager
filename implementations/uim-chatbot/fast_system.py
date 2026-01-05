@@ -47,7 +47,8 @@ def format_generic_results(result: Dict[str, Any], service_name: str) -> str:
 
         # Better error messages for common issues
         if '401' in error or 'Unauthorized' in error:
-            return f"Oops! Missing API key for {service_name}. This service requires authentication to work. Please contact your administrator to configure the API key."
+            return (f"Oops! Missing API key for {service_name}. This service requires authentication to work."
+                    f" Please contact your administrator to configure the API key.")
         elif '403' in error or 'Forbidden' in error:
             return f"Access denied for {service_name}. The API key may be invalid or doesn't have the required permissions."
         elif '429' in error or 'rate limit' in error.lower():
