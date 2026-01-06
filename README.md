@@ -1,129 +1,462 @@
 <div align="center">
-  <img src="https://synaptiai.github.io/uim-protocol/assets/images/abstract.png" alt="UIM Protocol Logo">
-  <h1>The Unified Intent Mediator Protocol</h1>
-  <p>A standardized framework for AI agents to interact with web services through well-defined intents</p>
+  <h1>DVerse UIM Catalogue Service</h1>
+  <p><strong>A Level 2 UIM Implementation for Intelligent Service Discovery and Invocation</strong></p>
+  <p>
+    <em>Enabling AI agents to discover and use external REST APIs through standardized intent definitions</em>
+  </p>
 </div>
+
+---
+
+## What is UIM?
+
+The **Unified Intent Mediator (UIM)** protocol is a standardized framework that enables AI agents to interact with web services through well-defined *intents*. Instead of hardcoding API integrations, UIM allows agents to dynamically discover services and understand how to use them through metadata.
+
+An **intent** defines a specific action or goal (e.g., "search papers", "get weather") by describing *what* should happen rather than *how*. This creates a clean abstraction layer between agents and the diverse world of REST APIs.
+
+### The Problem UIM Solves
+
+Traditional API integrations require developers to:
+- Write custom code for each API
+- Handle different authentication methods manually
+- Parse various response formats
+- Update code when APIs change
+
+UIM provides a **translation layer** where services register their capabilities as intents with standardized metadata. Agents query a catalogue, discover relevant services, and invoke them dynamically - no hardcoded integrations required.
+
+### Level 2 Implementation
+
+This project implements a **Level 2 UIM system**, meaning it provides UIM benefits (intelligent discovery, metadata-driven invocation, scalability) while working with **existing non-UIM-compliant REST APIs**. The catalogue acts as a bridge between natural language queries and traditional REST endpoints.
+
+---
+
+## System Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                         DVerse Platform                              │
+│                                                                      │
+│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐ │
+│  │   Chatbot       │     │   Catalogue     │     │   External      │ │
+│  │   Frontend      │────▶│   API           │────▶│   APIs          │ │
+│  │   (SolidJS)     │     │   (FastAPI)     │     │   (REST)        │ │
+│  └─────────────────┘     └────────┬────────┘     └─────────────────┘ │
+│                                   │                                  │
+│                          ┌────────▼────────┐                         │
+│                          │    MongoDB      │                         │
+│                          │    Catalogue    │                         │
+│                          └─────────────────┘                         │
+│                                                                      │
+│  ┌─────────────────┐     ┌─────────────────┐                         │
+│  │   Discovery     │     │   Service       │                         │
+│  │   Agent         │────▶│   Invoker       │                         │
+│  │   (Pydantic AI) │     │   (Template)    │                         │
+│  └─────────────────┘     └─────────────────┘                         │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### Request Flow
+
+1. **User Query** → User asks a natural language question (e.g., "Find papers about transformers")
+2. **Discovery** → LLM-powered agent searches the catalogue for matching services
+3. **Selection** → Best-matching service and intent are selected based on semantic similarity
+4. **Invocation** → Generic service invoker builds and executes the HTTP request using metadata
+5. **Formatting** → Template-based formatter structures the response for readability
+6. **Response** → User receives formatted results
+
+---
+
+## Components
+
+### Backend API (`implementations/uimServicemanager/API/`)
+
+A FastAPI application providing REST endpoints for the UIM catalogue.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/services` | GET/POST | List or register services |
+| `/intents` | GET/POST | List or register intents |
+| `/query` | POST | Natural language catalogue queries (keyword mode) |
+| `/discover` | POST | LLM-based service discovery |
+| `/health` | GET | Service health status |
+| `/docs` | GET | Swagger API documentation |
+
+**Architecture:**
+- **Presentation Layer**: Controllers handle HTTP requests and response formatting
+- **Logic Layer**: Business logic for service discovery and query processing
+- **Data Access Layer (DAL)**: MongoDB operations with Pydantic models
+
+### Chatbot Service (`implementations/uim-chatbot/`)
+
+An AI-powered conversational interface that discovers and invokes services.
+
+**Key Components:**
+- **Discovery Agent** (`agent.py`): Uses Pydantic AI with Ollama (llama3.2) for service selection
+- **Generic Service Invoker** (`service_invoker.py`): Metadata-driven HTTP request construction
+- **Fast System** (`fast_system.py`): Template-based response formatting (replaced LLM formatting due to 40% failure rate)
+
+**Endpoints:**
+- `POST /chat/discover` - Returns which service will handle the query
+- `POST /chat/invoke` - Executes the service call and returns results
+- `GET /` - Service health check
+
+### Frontends
+
+**Catalogue Browser** (`implementations/uimServicemanager/Client-Interface/`)
+- SolidJS web application
+- Browse registered services and intents
+- Visual interface for the catalogue
+
+**Chatbot Interface** (`implementations/uim-chatbot/Client-interface/`)
+- SolidJS chat application
+- Natural language interaction with the system
+- Real-time service discovery and invocation feedback
+
+### Integrated External APIs
+
+The catalogue is pre-seeded with these services:
+
+| Service | Description | Auth Type |
+|---------|-------------|-----------|
+| **arXiv API** | Academic paper search | None |
+| **OpenWeather** | Current weather and forecasts | API Key |
+| **News API** | News article search | API Key |
+| **GitHub API** | Repository and user data | Bearer Token |
+| **Spotify API** | Music search and metadata | Bearer Token |
+| **OpenAI API** | Text generation and analysis | Bearer Token |
+
+---
+
+## Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| Backend Framework | FastAPI |
+| Database | MongoDB |
+| Frontend Framework | SolidJS |
+| LLM Integration | Pydantic AI + Ollama (llama3.2) |
+| Messaging | NATS.io (optional) |
+| Data Validation | Pydantic |
+| HTTP Client | httpx |
+| Containerization | Docker |
+
+---
 
 ## Getting Started
 
-1. Get familiar with the [concepts and motivations](https://synaptiai.github.io/uim-protocol/specification/) behind the UIM protocol
-2. Explore the [prototype implementations](https://synaptiai.github.io/uim-protocol/prototypes/) to see the UIM protocol in action
-
-## Development Setup
-
-This project uses [Poetry](https://python-poetry.org/) for dependency management. Poetry provides a better way to manage Python dependencies with features like dependency resolution, virtual environments, and more.
-
 ### Prerequisites
 
-- Python 3.10 or higher
-- [Poetry](https://python-poetry.org/docs/#installation)
+- Python 3.10+
+- Node.js 18+
+- Docker Desktop
+- MongoDB (via Docker or local installation)
+- Ollama with llama3.2 model (for AI features)
 
 ### Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/synaptiai/uim-protocol.git
-   cd uim-protocol
-   ```
-
-2. Install dependencies with Poetry:
-   ```bash
-   poetry install
-   ```
-
-   This will create a virtual environment and install all dependencies.
-
-3. Activate the virtual environment:
-   ```bash
-   poetry shell
-   ```
-
-### Dependency Groups
-
-The project uses Poetry's dependency groups to organize dependencies:
-
-- **Main**: Core dependencies for the UIM Protocol
-- **Dev**: Development dependencies (testing, linting, etc.)
-- **Docs**: Documentation dependencies (MkDocs, etc.)
-- **NLP**: Natural language processing dependencies (spaCy, etc.)
-
-To install only specific groups:
-
+**1. Clone the repository:**
 ```bash
-# Install only documentation dependencies
-poetry install --only docs
-
-# Install main dependencies and development dependencies
-poetry install --with dev
+git clone https://github.com/[repository]/dverse-uim.git
+cd dverse-uim
 ```
 
-### Building Documentation
-
+**2. Start MongoDB:**
 ```bash
-cd uim-docs
-poetry run mkdocs build
+docker run -d --name mongodb -p 27017:27017 mongo:latest
 ```
 
-### Running Tests
-
+**3. Start NATS (optional, for messaging features):**
 ```bash
-poetry run pytest
+docker run -d --name nats-server -p 4222:4222 -p 8222:8222 nats:latest
 ```
 
-## Get Involved: We Need Your Feedback
+**4. Install Ollama and pull the model:**
+```bash
+# Install Ollama from https://ollama.ai
+ollama pull llama3.2
+```
 
-We're inviting developers, AI providers, service operators, and tech/AI enthusiasts to review the draft specification, test the implementation, and share feedback. Your input is crucial to refining and improving the protocol.
+**5. Set up the Backend API:**
+```bash
+cd implementations/uimServicemanager/API
+pip install -r requirements.txt --break-system-packages
+cd ..
+python StartupService.py
+```
 
-### How to Contribute
+**6. Seed the database (first run):**
+The startup script automatically seeds the database with demo services if empty.
 
-1. **Review the Draft Proposal**: Check out the [draft specification](https://synaptiai.github.io/uim-protocol/specification/uim-specification.txt) and explore the protocol's design and implementation.
-2. **Join the Discussion**: Start a conversation in the [Discussions](https://github.com/synaptiai/uim-protocol/discussions) tab. We'd love to hear your thoughts on the protocol's design, potential use cases, or any concerns.
-3. **Raise Issues**: Found a bug or have suggestions? Open an [Issue](https://github.com/synaptiai/uim-protocol/issues) to let us know or contribute directly by submitting a Pull Request. See our [Contributing Guidelines](CONTRIBUTING.md) for more information.
-4. **Share the Word**: Help us spread the word about the UIM protocol by sharing this repository with your network. Write a blog post, tweet, or share the project with your colleagues. We appreciate your support!
+**7. Start the Chatbot Service:**
+```bash
+cd implementations/uim-chatbot
+pip install -r requirements.txt --break-system-packages
+python main.py
+```
 
-## Protocol Overview
+**8. Start the Frontends:**
 
-The Unified Intent Mediator (UIM) protocol defines a standardized framework for AI agents to interact with web services through well-defined intents, metadata, and execution methods. By introducing consistency and security in these interactions, UIM enhances efficiency, scalability, and reliability for AI-driven applications.
+Catalogue Browser:
+```bash
+cd implementations/uimServicemanager/Client-Interface
+npm install
+npm run dev
+```
 
-### Key Components
+Chatbot Interface:
+```bash
+cd implementations/uim-chatbot/Client-interface
+npm install
+npm run dev
+```
 
-- **Intents**: Structured actions that web services can expose, defining specific tasks such as searching products, placing orders, or retrieving data.
-- **Metadata and Parameters**: Each intent comes with metadata (name, description, category) and defined parameters, providing context and specific input requirements.
-- **Policy Adherence Tokens (PATs)**: Digitally signed tokens that encapsulate permissions, billing, and compliance rules.
-- **Discovery and Execution APIs**: AI agents can query discovery APIs to find available intents and use execution APIs to perform actions.
-- **DNS TXT Records and agents.json Files**: Innovative methods for endpoint discovery, allowing AI agents to find and authenticate API endpoints.
+### Ports Overview
 
-### Architecture Options
+| Service | Port | URL |
+|---------|------|-----|
+| Backend API | 8000 | http://localhost:8000 |
+| Chatbot Service | 8001 | http://localhost:8001 |
+| Catalogue Frontend | 3000 | http://localhost:3000 |
+| Chatbot Frontend | 3001 | http://localhost:3001 |
+| MongoDB | 27017 | mongodb://localhost:27017 |
+| NATS | 4222 | nats://localhost:4222 |
+| NATS Monitor | 8222 | http://localhost:8222 |
 
-The UIM Protocol supports multiple architectural approaches:
+### Quick Test
 
-1. **Centralized Architecture**: A central repository manages intent registration, discovery, execution, and policy management.
-2. **Decentralized Architecture**: AI agents interact directly with web services without a central intermediary.
-3. **Hybrid Approach**: Combines centralized discovery with decentralized execution and PAT issuance.
+```bash
+# Test Backend API
+curl http://localhost:8000/health
+
+# Test query endpoint
+curl -X POST http://localhost:8000/query/ \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Find weather services", "use_ai": false}'
+
+# View API documentation
+open http://localhost:8000/docs
+```
+
+---
+
+## Usage Examples
+
+### Using the Chatbot
+
+Try these queries in the chatbot interface:
+
+- "Find papers about neural networks"
+- "What's the weather in London?"
+- "Search for news about AI"
+- "Find repositories about machine learning"
+
+### Using the API Directly
+
+**List all services:**
+```bash
+curl http://localhost:8000/services
+```
+
+**Query the catalogue:**
+```bash
+curl -X POST http://localhost:8000/query/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "weather forecast",
+    "agent_id": "my-agent",
+    "use_ai": false
+  }'
+```
+
+**Register a new service:**
+```bash
+curl -X POST http://localhost:8000/services \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Service",
+    "description": "A custom service",
+    "service_url": "https://api.example.com/v1",
+    "auth_type": "api_key"
+  }'
+```
+
+---
+
+## Testing
+
+The project includes comprehensive test suites covering all components.
+
+### Run All Tests
+
+```bash
+cd implementations/uim-chatbot/Tests
+python run_all_tests.py
+```
+
+### Test Suites
+
+| Suite | Description | Tests |
+|-------|-------------|-------|
+| API Endpoint Tests | Backend REST endpoints | 7 |
+| Service Invoker | Metadata-driven invocation | 3 |
+| End-to-End | Complete workflow | 5 |
+| Chatbot HTTP | Chat interface | 5 |
+| Discovery LLM | Service selection | 5 |
+| Safety | Input validation, error handling | 3 |
+| Reliability | Stability, recovery | 4 |
+
+**Total: 32 tests**
+
+### Quick Test (Core Only)
+
+```bash
+python run_all_tests.py --quick
+```
+
+### Skip LLM Tests
+
+```bash
+python run_all_tests.py --skip-llm
+```
+
+---
+
+## Architecture Decisions
+
+Key technical decisions are documented as Architecture Decision Records (ADRs):
+
+| ADR | Decision | Rationale |
+|-----|----------|-----------|
+| Database | MongoDB | Schema flexibility, JSON-native, Python integration |
+| Backend Framework | FastAPI | Async support, type validation, auto-documentation |
+| Frontend Framework | SolidJS | Fine-grained reactivity, small bundle size, JSX syntax |
+| LLM Framework | Pydantic AI | Native Pydantic integration, tool calling support |
+| LLM Model | llama3.2 (Ollama) | Local inference, no API costs, reliable tool calling |
+| Data Validation | Pydantic | Type enforcement, FastAPI integration |
+| Service Merge | Unified API | Eliminated HTTP overhead, simplified deployment |
+| Response Formatting | Templates | 100% reliability vs 60% with LLM formatting |
+
+Full ADR documents available in `implementations/uimServicemanager/Docs/ADRS/`
+
+---
 
 ## Repository Structure
 
 ```
-uim-protocol/
-├── implementations/       # Reference implementations
-│   ├── centralized-discovery-service/
-│   ├── uim-mock-agent/
-│   └── uim-mock-webservice/
-├── examples/              # Usage examples and demos
-├── uim-docs/              # Documentation
-│   ├── docs/              # Documentation source files
-│   │   ├── specification/ # Protocol specifications
-│   │   ├── assets/        # Documentation assets (images, etc.)
-│   │   └── reference/     # API reference documentation
-│   └── site/              # Generated documentation site
-├── pyproject.toml         # Poetry configuration
-└── poetry.lock            # Poetry lock file
+dverse-uim/
+├── implementations/
+│   ├── uimServicemanager/           # Backend API & Catalogue
+│   │   ├── API/
+│   │   │   ├── Presentation/        # Controllers & ViewModels
+│   │   │   ├── logicLayer/          # Business logic
+│   │   │   ├── DAL/                 # Data access layer
+│   │   │   │   ├── seed_data.json   # Pre-configured services
+│   │   │   │   └── seed_database.py # Database seeding script
+│   │   │   ├── main.py              # FastAPI application
+│   │   │   └── ARCHITECTURE.md      # System architecture docs
+│   │   ├── Client-Interface/        # Catalogue browser (SolidJS)
+│   │   │   ├── src/
+│   │   │   │   ├── App.jsx          # Main application component
+│   │   │   │   └── index.jsx        # Entry point
+│   │   │   ├── package.json
+│   │   │   └── vite.config.js
+│   │   ├── Docs/
+│   │   │   ├── ADRS/                # Architecture Decision Records
+│   │   │   └── Tests Report.md      # Test documentation
+│   │   ├── StartupService.py        # Backend startup script
+│   │   └── test_API.py              # API test suite
+│   │
+│   └── uim-chatbot/                 # Chatbot service
+│       ├── main.py                  # FastAPI chatbot server
+│       ├── agent.py                 # Pydantic AI discovery agent
+│       ├── service_invoker.py       # Generic HTTP invoker
+│       ├── fast_system.py           # Template-based formatting
+│       ├── models.py                # Pydantic data models
+│       ├── Client-interface/        # Chat UI (SolidJS)
+│       │   ├── src/
+│       │   │   ├── App.jsx          # Chat component
+│       │   │   └── index.jsx        # Entry point
+│       │   └── package.json
+│       └── Tests/                   # Comprehensive test suites
+│           ├── run_all_tests.py     # Test runner
+│           ├── test_service_invoker.py
+│           ├── test_e2e.py
+│           ├── test_chatbot.py
+│           ├── test_discovery_llm.py
+│           ├── test_safety.py
+│           └── test_reliability.py
+│
+├── uim-docs/                        # UIM protocol documentation
+└── README.md                        # This file
 ```
 
-## Current Status & Roadmap
+---
 
-The UIM Protocol is currently in the draft proposal phase. See our roadmap for the development roadmap.
+## Configuration
+
+### Environment Variables
+
+```bash
+# API Keys for external services (optional)
+OPENWEATHER_API_KEY=your_key_here
+NEWS_API_KEY=your_key_here
+GITHUB_TOKEN=your_token_here
+SPOTIFY_CLIENT_ID=your_id_here
+SPOTIFY_CLIENT_SECRET=your_secret_here
+
+# MongoDB connection
+MONGODB_URI=mongodb://localhost:27017
+
+# Ollama configuration
+OLLAMA_HOST=http://localhost:11434
+```
+
+### Database Seeding
+
+The catalogue is automatically seeded with demo services on first startup. To re-seed:
+
+```bash
+cd implementations/uimServicemanager/API
+python -c "from DAL.seed_data import seed_database; seed_database()"
+```
+
+---
+
+## Research Context
+
+This project was developed as part of the **DVerse Research Program** at Fontys ICT, exploring how the UIM protocol can enable intelligent agent-service communication in distributed systems.
+
+**Key Research Questions:**
+1. How can UIM enhance agent-service communication within the DVerse platform?
+2. What are the strengths and limitations of UIM compared to traditional API integration?
+3. How can conversational interfaces improve service discovery?
+
+**Key Findings:**
+- Template-based formatting significantly outperforms LLM-based approaches for reliability
+- Level 2 UIM implementations can bridge the gap between the protocol's vision and real-world API diversity
+- Metadata-driven invocation eliminates the need for hardcoded API integrations
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
 
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- **DVerse Research Program** - Fontys ICT
+- **UIM Protocol** - SynaptiAI
+- **Ollama** - Local LLM inference
+- **Pydantic AI** - Agent framework
